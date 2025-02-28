@@ -6,6 +6,12 @@ async function main() {
     const user = await User.deploy();
     await user.waitForDeployment();
     console.log("User deployed to:", await user.getAddress());
+
+    //Deploy the User contract
+    const Event = await hre.ethers.getContractFactory("Event");
+    const event = await Event.deploy();
+    await event.waitForDeployment();
+    console.log("Event deployed to:", await event.getAddress());
 }
 
 main()
