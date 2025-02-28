@@ -11,3 +11,14 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat ignition deploy ./ignition/modules/Lock.js
 ```
+
+
+Commands to run everything:
+
+npx hardhat node
+
+npx hardhat compile
+
+npx hardhat run scripts/deploy.js --network localhost
+
+npx hardhat test
