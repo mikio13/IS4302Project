@@ -14,6 +14,10 @@ describe("Ticket Contract", function () {
         eventContract = await Event.deploy();
         await eventContract.waitForDeployment();
 
+        const eventAddress = await eventContract.getAddress();
+        console.log("Event contract deployed at:", eventAddress);
+        expect(eventAddress).to.be.properAddress;
+
         // Organiser creates an event
         const eventDesc = "Blockchain Conference 2025";
         let tx = await eventContract.connect(organiser).createEvent(eventDesc);
@@ -22,19 +26,31 @@ describe("Ticket Contract", function () {
         // Organiser adds a ticket type to event 0 with quota 1 for testing quota limits
         const category = "VIP";
         const price = ethers.parseEther("0.1");
-        const quota = 1; // set low quota for edge case testing
+        const quota = 1; // low quota for testing
         tx = await eventContract.connect(organiser).addTicketType(0, category, price, quota);
         await tx.wait();
 
+        // Verify that the ticket type was added correctly
+        const ticketType = await eventContract.getTicketType(0, 0);
+        // ticketType returns a tuple: [category, price, quota, sold]
+        expect(ticketType[1]).to.equal(price);
+        expect(ticketType[2]).to.equal(quota);
+        expect(ticketType[3]).to.equal(0);
+
         // Deploy the Ticket contract with the address of the Event contract
         Ticket = await ethers.getContractFactory("Ticket");
-        ticketContract = await Ticket.deploy(eventContract.address);
+        ticketContract = await Ticket.deploy(eventAddress);
         await ticketContract.waitForDeployment();
+
+        const ticketAddress = await ticketContract.getAddress();
+        console.log("Ticket contract deployed at:", ticketAddress);
+        expect(ticketAddress).to.be.properAddress;
     });
 
     // Test deployment of the Ticket contract
     it("Should deploy the Ticket contract successfully", async function () {
-        expect(await ticketContract.getAddress()).to.be.properAddress;
+        const ticketAddress = await ticketContract.getAddress();
+        expect(ticketAddress).to.be.properAddress;
     });
 
     // Test a successful ticket purchase
@@ -54,8 +70,8 @@ describe("Ticket Contract", function () {
         expect(await ticketContract.ownerOf(0)).to.equal(buyer1.address);
 
         // Verify that the sold count in the Event contract has been incremented
-        const ticketType = await eventContract.getTicketType(0, 0);
-        expect(ticketType.sold).to.equal(1);
+        const updatedTicketType = await eventContract.getTicketType(0, 0);
+        expect(updatedTicketType[3]).to.equal(1);
     });
 
     // Test purchase fails if incorrect Ether is sent

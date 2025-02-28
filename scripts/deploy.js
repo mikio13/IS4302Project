@@ -16,7 +16,7 @@ async function main() {
 
     //Deploy the Ticket contract
     const Ticket = await hre.ethers.getContractFactory("Ticket");
-    const ticket = await Ticket.deploy();
+    const ticket = await Ticket.deploy(await event.getAddress());
     await ticket.waitForDeployment();
     console.log("Ticket deployed to:", await ticket.getAddress());
 }
