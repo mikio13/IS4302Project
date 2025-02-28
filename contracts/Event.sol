@@ -103,9 +103,6 @@ contract Event {
      * @dev Increments the sold count for a given ticket type.
      * @param eventId The ID of the event.
      * @param ticketTypeId The index of the ticket type.
-     *
-     * Note: For simplicity, no access control is applied here. In production,
-     * you should restrict who can call this function.
      */
     function incrementSold(uint256 eventId, uint256 ticketTypeId) external {
         events[eventId].ticketTypes[ticketTypeId].sold++;
