@@ -48,13 +48,8 @@ contract Ticket is ERC721 {
         uint256 ticketTypeId,
         string calldata qrCode
     ) external payable {
-        // Retrieve ticket type details from the Event contract
-        (
-            string memory category,
-            uint256 price,
-            uint256 quota,
-            uint256 sold
-        ) = eventContract.getTicketType(eventId, ticketTypeId);
+        (, uint256 price, uint256 quota, uint256 sold) = eventContract
+            .getTicketType(eventId, ticketTypeId);
 
         // Ensure the correct price is sent
         require(msg.value == price, "Incorrect Ether value sent");
