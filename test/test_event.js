@@ -31,6 +31,16 @@ describe("Event Contract", function () {
         expect(eventData.id).to.equal(0);
     });
 
+    // Edge Case: Create event with empty description
+    it("Should allow event creation with an empty description", async function () {
+        const description = "";
+        const createTx = await eventContract.connect(organiser).createEvent(description);
+        await createTx.wait();
+
+        const eventData = await eventContract.events(0);
+        expect(eventData.description).to.equal("");
+    });
+
     // Test adding a ticket type by the event organiser
     it("Should allow the organiser to add a ticket type to an event", async function () {
         const description = "Blockchain Conference 2025";
@@ -52,6 +62,20 @@ describe("Event Contract", function () {
         expect(ticketType.price).to.equal(price);
         expect(ticketType.quota).to.equal(quota);
         expect(ticketType.sold).to.equal(0);
+    });
+
+    // Edge Case: Adding a ticket type with zero quota or zero price (if allowed)
+    it("Should add a ticket type with zero quota and/or zero price", async function () {
+        const description = "Test Event";
+        let tx = await eventContract.connect(organiser).createEvent(description);
+        await tx.wait();
+
+        // Zero quota
+        tx = await eventContract.connect(organiser).addTicketType(0, "Free", 0, 0);
+        await tx.wait();
+        const ticketTypeZero = await eventContract.getTicketType(0, 0);
+        expect(ticketTypeZero.quota).to.equal(0);
+        expect(ticketTypeZero.price).to.equal(0);
     });
 
     // Test that a non-organiser cannot add a ticket type

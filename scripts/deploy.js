@@ -12,6 +12,13 @@ async function main() {
     const event = await Event.deploy();
     await event.waitForDeployment();
     console.log("Event deployed to:", await event.getAddress());
+
+
+    //Deploy the Ticket contract
+    const Ticket = await hre.ethers.getContractFactory("Ticket");
+    const ticket = await Ticket.deploy();
+    await ticket.waitForDeployment();
+    console.log("Ticket deployed to:", await ticket.getAddress());
 }
 
 main()
