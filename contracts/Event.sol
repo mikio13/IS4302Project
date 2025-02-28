@@ -1,30 +1,32 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract EventContract {
+contract Event {
+    // Struct to hold ticket type details
     struct TicketType {
-        string category; // E.g., "VIP", "General Admission"
-        uint256 price; // Price in Eth
-        uint256 quota; // Maximum number of tickets for this type
-        uint256 sold; // Number of tickets sold for this type
+        string category; // e.g., "VIP", "General Admission"
+        uint256 price; // Price in wei
+        uint256 quota; // Maximum number of tickets available for this type
+        uint256 sold; // Number of tickets sold (initially 0)
     }
 
-    struct Event {
+    // Struct to hold event details; using "EventObj" to avoid reserved keyword conflicts
+    struct EventObj {
         uint256 id; // Unique event ID
-        address organizer; // Address of the event organizer
-        string description; // Event details (name, venue, etc.)
-        TicketType[] ticketTypes; // Array of ticket types
+        address organiser; // Organiser's Ethereum address
+        string description; // Description (name, venue, date, etc.)
+        TicketType[] ticketTypes; // Array of ticket types for the event
     }
 
-    // Event ID counter
+    // Auto-incrementing event ID counter
     uint256 public nextEventId;
-    // Mapping of event ID to Event struct
-    mapping(uint256 => Event) public events;
+    // Mapping from event ID to EventObj struct
+    mapping(uint256 => EventObj) public events;
 
-    // Events for off-chain logging and UI updates
+    // Events for logging actions
     event EventCreated(
         uint256 indexed eventId,
-        address indexed organizer,
+        address indexed organiser,
         string description
     );
     event TicketTypeAdded(
@@ -36,16 +38,16 @@ contract EventContract {
     );
 
     /**
-     * @dev Creates a new event.
-     * The caller becomes the organizer of the event.
+     * @dev Allows an organiser to create an event.
+     * The organiser becomes the owner of that event.
      * @param _description The event description.
      */
     function createEvent(string calldata _description) external {
         uint256 eventId = nextEventId;
-        // Create a new event and store it in the mapping
-        Event storage newEvent = events[eventId];
+        // Create a new event and assign it to the caller as the organiser
+        EventObj storage newEvent = events[eventId];
         newEvent.id = eventId;
-        newEvent.organizer = msg.sender;
+        newEvent.organiser = msg.sender;
         newEvent.description = _description;
         nextEventId++;
 
@@ -53,12 +55,11 @@ contract EventContract {
     }
 
     /**
-     * @dev Adds a ticket type to an existing event.
-     * Only the event organizer can add ticket types.
+     * @dev Allows the event organiser to add a new ticket type to an event.
      * @param eventId The ID of the event.
      * @param _category The category of the ticket type (e.g., "VIP").
      * @param _price The price of the ticket in wei.
-     * @param _quota The maximum number of tickets for this type.
+     * @param _quota The maximum number of tickets available for this type.
      */
     function addTicketType(
         uint256 eventId,
@@ -66,24 +67,27 @@ contract EventContract {
         uint256 _price,
         uint256 _quota
     ) external {
-        // Only the organizer can add ticket types
-        require(events[eventId].organizer == msg.sender, "Not event organizer");
+        // Only the organiser who created the event can add ticket types
+        require(
+            events[eventId].organiser == msg.sender,
+            "Only organiser can add ticket types"
+        );
 
-        // Create and add the new ticket type to the event
-        TicketType memory tt = TicketType({
+        // Create the new ticket type and push it into the event's ticketTypes array
+        TicketType memory newTicketType = TicketType({
             category: _category,
             price: _price,
             quota: _quota,
             sold: 0
         });
-        events[eventId].ticketTypes.push(tt);
+        events[eventId].ticketTypes.push(newTicketType);
         uint256 ticketTypeId = events[eventId].ticketTypes.length - 1;
 
         emit TicketTypeAdded(eventId, ticketTypeId, _category, _price, _quota);
     }
 
     /**
-     * @dev Retrieves a specific ticket type for a given event.
+     * @dev Retrieves a ticket type for a given event.
      * @param eventId The ID of the event.
      * @param ticketTypeId The index of the ticket type.
      * @return The TicketType struct.
@@ -93,5 +97,14 @@ contract EventContract {
         uint256 ticketTypeId
     ) external view returns (TicketType memory) {
         return events[eventId].ticketTypes[ticketTypeId];
+    }
+
+    /**
+     * @dev Increments the sold count for a given ticket type.
+     * @param eventId The ID of the event.
+     * @param ticketTypeId The index of the ticket type.
+     */
+    function incrementSold(uint256 eventId, uint256 ticketTypeId) external {
+        events[eventId].ticketTypes[ticketTypeId].sold++;
     }
 }
