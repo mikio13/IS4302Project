@@ -1,32 +1,39 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+// This contract stores user registrations (including hashed NRIC data)
 contract UserRegistry {
     struct User {
-        string nricHash; // Pre-hashed NRIC provided off-chain
+        string hashedNRIC; // Pre-hashed NRIC provided off-chain
         string name;
         bool registered;
     }
 
-    mapping(address => User) public users;
+    mapping(address => User) private _users;
 
-    event UserRegistered(address indexed user, string nricHash, string name);
+    event UserRegistered(address indexed user, string hashedNRIC, string name);
 
-    // Expects the hashed NRIC to be produced off-chain and passed as a string.
+    // This function registers a new user with a hashed NRIC and name
+    // We use calldata since we're not modifying the strings + cheaper in gas compared to using memory
     function registerUser(
-        string memory _hashedNRIC,
-        string memory _name
-    ) public {
-        require(!users[msg.sender].registered, "User already registered");
-        users[msg.sender] = User({
-            nricHash: _hashedNRIC,
-            name: _name,
-            registered: true
-        });
-        emit UserRegistered(msg.sender, _hashedNRIC, _name);
+        string calldata hashedNRIC,
+        string calldata name
+    ) external {
+        require(!_users[msg.sender].registered, "Already registered");
+        _users[msg.sender] = User(hashedNRIC, name, true);
+        emit UserRegistered(msg.sender, hashedNRIC, name);
     }
 
-    function isRegistered(address _user) external view returns (bool) {
-        return users[_user].registered;
+    // This function checks if a given address is registered
+    function isRegistered(address user) external view returns (bool) {
+        return _users[user].registered;
+    }
+
+    // This function retrieves user details (hashedNRIC, name, and registration status)
+    function getUserDetails(
+        address user
+    ) external view returns (string memory, string memory, bool) {
+        require(_users[user].registered, "Not registered");
+        return (_users[user].hashedNRIC, _users[user].name, true);
     }
 }
