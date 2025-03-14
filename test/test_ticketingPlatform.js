@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("TicketingPlatform & UserRegistry Integration", function () {
+describe("TicketingPlatform & UserRegistry Contracts", function () {
     let UserRegistry, userRegistry;
     let TicketingPlatform, ticketingPlatform;
     let owner, organiser, randomUser, others;
