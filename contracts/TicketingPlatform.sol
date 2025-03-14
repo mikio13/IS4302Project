@@ -6,7 +6,7 @@ import "./UserRegistry.sol";
 import "./Event.sol";
 
 // This contract is where the Owner of the platform itself will do the following
-// 1. Approve organisers, only after approving can these organisers be allowed to create Events, create Tickets etc
+// Approve organisers, only after approving can these organisers be allowed to create Events, create Tickets etc
 contract TicketingPlatform is AccessControl {
     //Creates the Organiser Role
     bytes32 public constant ORGANISER_ROLE = keccak256("ORGANISER_ROLE");
