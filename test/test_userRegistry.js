@@ -6,7 +6,7 @@ describe("UserRegistry Contract", function () {
     let userRegistry;
     let account1, account2, others;
 
-    beforeEach(async function () {
+    before(async function () {
         [account1, account2, ...others] = await ethers.getSigners();
         UserRegistry = await ethers.getContractFactory("UserRegistry");
         userRegistry = await UserRegistry.deploy();
@@ -20,48 +20,56 @@ describe("UserRegistry Contract", function () {
 
     // Test user registration and event emission
     it("Should register a user successfully and emit an event", async function () {
-        const tx = await userRegistry.connect(account1).registerUser(
-            "hashed123",   // hashed NRIC value
-            "Alice"        // name
-        );
-        // Check for event emission with correct arguments
+        const tx = await userRegistry
+            .connect(account1)
+            .registerUser("hashed123", "Alice");
+
+        // Check for UserRegistered event to be emitted with correct arguments
         await expect(tx)
             .to.emit(userRegistry, "UserRegistered")
             .withArgs(account1.address, "hashed123", "Alice");
 
-        const userData = await userRegistry.users(account1.address);
-        expect(userData.nricHash).to.equal("hashed123");
-        expect(userData.name).to.equal("Alice");
-        expect(userData.registered).to.equal(true);
+        // Check that the user details are stored correctly
+        const [retrievedNRIC, retrievedName, retrievedStatus] = await userRegistry.getUserDetails(
+            account1.address
+        );
+
+        expect(retrievedNRIC).to.equal("hashed123");
+        expect(retrievedName).to.equal("Alice");
+        expect(retrievedStatus).to.equal(true);
     });
 
     // Test that duplicate registration fails
     it("Should not allow duplicate registration", async function () {
-        await userRegistry.connect(account1).registerUser("hashed123", "Alice");
-
+        // Account1 has already registered in the previous test, so this should revert
         await expect(
             userRegistry.connect(account1).registerUser("hashed456", "Bob")
-        ).to.be.revertedWith("User already registered");
+        ).to.be.revertedWith("Already registered");
     });
 
     // Test registration status via isRegistered function
     it("Should correctly report registration status using isRegistered", async function () {
-        // Initially, account1 should not be registered
-        expect(await userRegistry.isRegistered(account1.address)).to.equal(false);
-
-        // Register account1
-        await userRegistry.connect(account1).registerUser("hashed123", "Alice");
+        // Account1 was registered in the second test
         expect(await userRegistry.isRegistered(account1.address)).to.equal(true);
 
-        // account2 remains unregistered
+        // Account2 remains unregistered
         expect(await userRegistry.isRegistered(account2.address)).to.equal(false);
+
+        // Register account2
+        const tx = await userRegistry
+            .connect(account2)
+            .registerUser("hashed999", "Eve");
+        await tx.wait();
+
+        // Now account2 should be registered
+        expect(await userRegistry.isRegistered(account2.address)).to.equal(true);
     });
 
-    // Edge Case: Retrieve default values for an unregistered user
-    it("Should return default values for non-registered user", async function () {
-        const userData = await userRegistry.users(account2.address);
-        expect(userData.nricHash).to.equal("");
-        expect(userData.name).to.equal("");
-        expect(userData.registered).to.equal(false);
+    // Test that getUserDetails reverts for an unregistered user (account from 'others')
+    it("Should revert when calling getUserDetails on an unregistered user", async function () {
+        const unregistered = others[0];
+        await expect(
+            userRegistry.getUserDetails(unregistered.address)
+        ).to.be.revertedWith("Not registered");
     });
 });
