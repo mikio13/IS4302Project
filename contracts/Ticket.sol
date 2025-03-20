@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+//import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "./UserRegistry.sol";
 
@@ -83,6 +84,26 @@ contract Ticket is ERC721URIStorage {
         emit TicketPurchased(ticketId, buyer, totalPrice);
     }
 
+    function safeTransferFromWith(
+        address from,
+        address to,
+        uint256 ticketId
+    ) external {
+        require(ownerOf(ticketId) == from, "Not the ticket owner");
+
+        // Update last transfer time
+        ticketData[ticketId].lastTransfer = block.timestamp;
+
+        // Perform standard ERC721 safeTransfer
+        _safeTransfer(from, to, ticketId, "");
+        emit TicketResold(
+            ticketId,
+            from,
+            to,
+            ticketData[ticketId].purchasePrice
+        );
+    }
+
     // Custom function to safely transfer a ticket with an updated URI, only the event organiser can update the URI.
     function safeTransferFromWithURI(
         address from,
@@ -123,5 +144,21 @@ contract Ticket is ERC721URIStorage {
 
         _setTokenURI(ticketId, newURI);
         emit TicketURIUpdated(ticketId, newURI);
+    }
+
+    function getBasePrice(uint256 ticketId) public view returns (uint256) {
+        require(
+            ticketId > 0 && ticketId <= totalMinted,
+            "Ticket does not exist"
+        );
+        return ticketData[ticketId].purchasePrice;
+    }
+
+    function getTicketOwner(uint256 ticketId) public view returns (address) {
+        require(
+            ticketId > 0 && ticketId <= totalMinted,
+            "Ticket does not exist"
+        );
+        return ticketData[ticketId].originalOwner;
     }
 }

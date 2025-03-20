@@ -14,6 +14,7 @@ contract TicketMarket {
         bool active;
     }
 
+    address owner = msg.sender;
     UserRegistry public immutable userRegistry;
     uint256 public commissionRate; // e.g. 500 = 5%
     Listing[] public listings;
@@ -24,6 +25,14 @@ contract TicketMarket {
         uint256 ticketId,
         uint256 price
     );
+
+    event TicketUnlisted(
+        address indexed seller,
+        address ticketContract,
+        uint256 ticketId,
+        uint256 price
+    );
+
     event TicketSold(
         address indexed buyer,
         address ticketContract,
@@ -43,6 +52,9 @@ contract TicketMarket {
         uint256 price
     ) external {
         require(userRegistry.isRegistered(msg.sender), "Unregistered user");
+        Ticket ticket = Ticket(ticketContract);
+        uint256 originalPrice = ticket.getBasePrice(ticketId);
+        require(price <= originalPrice, "Price exceeds original ticket price");
 
         // Transfer the NFT to the market contract or use an approval-based approach
         IERC721(ticketContract).transferFrom(
@@ -64,13 +76,35 @@ contract TicketMarket {
         emit TicketListed(msg.sender, ticketContract, ticketId, price);
     }
 
+    function unlistTicket(uint256 listingId) external {
+        require(userRegistry.isRegistered(msg.sender), "Unregistered user");
+        require(listingId < listings.length, "Invalid listingId");
+        Listing storage listing = listings[listingId];
+        require(msg.sender == listing.seller, "Not the seller of this ticket");
+        require(listing.active, "Ticket is not listed for resale on the market");
+
+        listing.active = false;
+
+        IERC721(listing.ticketContract).transferFrom(
+            address(this),
+            msg.sender,
+            listing.ticketId
+        );
+
+        emit TicketUnlisted(
+            listing.seller,
+            listing.ticketContract,
+            listing.ticketId,
+            listing.price
+        );
+    }
+
     function buyTicket(
-        uint256 listingId,
-        string calldata newMetadataURI
+        uint256 listingId
     ) external payable {
         require(listingId < listings.length, "Invalid listingId");
         Listing storage listing = listings[listingId];
-        require(listing.active, "Listing inactive");
+        require(listing.active, "Ticket is not listed for resale on the market");
 
         // Commission-based total
         uint256 totalPrice = listing.price +
@@ -95,13 +129,12 @@ contract TicketMarket {
             listing.ticketId
         );
 
-        // If you want to also update the NFT's metadata, cast to Ticket
-        Ticket(listing.ticketContract).safeTransferFromWithURI(
-            address(this),
-            msg.sender,
-            listing.ticketId,
-            newMetadataURI
-        );
+        // Ticket(listing.ticketContract).safeTransferFromWithURI(
+        //     address(this),
+        //     msg.sender,
+        //     listing.ticketId,
+        //     newMetadataURI
+        // );
 
         emit TicketSold(
             msg.sender,
@@ -109,8 +142,25 @@ contract TicketMarket {
             listing.ticketId,
             totalPrice
         );
+    }   
+
+    function checkPrice(uint256 listingId) external view returns (uint256) {
+        require(listingId < listings.length, "Invalid listingId");
+        require(listings[listingId].active, "Listing is not active");
+        return listings[listingId].price;
     }
 
+    function checkCommission() public view returns (uint256) {
+        require(msg.sender == owner, "Sorry, you are not allowed to do that");
+        return address(this).balance;
+    }
+
+    function withdraw() public {
+        require(msg.sender == owner, "Sorry, you are not allowed to do that");
+        payable(msg.sender).transfer(address(this).balance);
+    }
+
+    // this includes inactive listings as well
     function getNumberOfListings() external view returns (uint256) {
         return listings.length;
     }
