@@ -145,6 +145,13 @@ describe("TicketMarket Contract", function () {
     });
 
     it("Buyer 1 lists their ticket on the resale market  and Buyer 2 purchases it successfully", async function () {
+        // Register buyer2
+        const regTx = await userRegistry
+            .connect(buyer2)
+            .registerUser("hashedNRIC_buyer2", "Bob Buyer");
+        await regTx.wait();
+        expect(await userRegistry.isRegistered(buyer2.address)).to.equal(true);
+
         await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), ticketId);
 
         const originalPrice = ethers.parseEther("0.06");
@@ -205,8 +212,8 @@ describe("TicketMarket Contract", function () {
         await tx2.wait();
 
         await expect(tx2)
-        .to.emit(ticketMarket, "TicketUnlisted")
-        .withArgs(buyer1.address, ticketInstance, ticketId2, resalePrice);
+            .to.emit(ticketMarket, "TicketUnlisted")
+            .withArgs(buyer1.address, ticketInstance, ticketId2, resalePrice);
 
         // ownership should go back to the seller
         expect(await ticketInstance.ownerOf(ticketId2)).to.equal(buyer1.address);
@@ -217,6 +224,35 @@ describe("TicketMarket Contract", function () {
         await expect(
             ticketMarket.connect(buyer2).buyTicket(1, { value: purchasePrice })
         ).to.be.revertedWith("Ticket is not listed for resale on the market");
+
+    });
+
+    // need to add
+    // buyer 2 make offer
+    // buyer 1 accept offer > check ticket ownership and eth transfer
+    it("Buyer 1 lists ticket for trade", async function () {
+        await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), 3);
+
+        const basePrice = ethers.parseEther("0.05");
+        const commissionRate = 500n;
+        const finalPrice = basePrice + (basePrice * commissionRate) / 10000n
+
+        const buyTx = await eventInstance
+            .connect(buyer1)
+            .buyTicket(0, { value: finalPrice });
+        await buyTx.wait();
+
+        expect(await ticketInstance.ownerOf(3)).to.equal(buyer1.address);
+
+        const tx = await ticketMarket.connect(buyer1).listTicketforTrade(ticketInstance, 3);
+        await tx.wait();
+
+        // check ownership transfer to ticket 
+        await expect(tx)
+            .to.emit(ticketMarket, "TicketListed")
+            .withArgs(buyer1.address, ticketInstance, 3, finalPrice);
+
+        expect(await ticketInstance.ownerOf(3)).to.equal(await ticketMarket.getAddress());
 
     });
 
