@@ -50,7 +50,8 @@ contract TicketMarket {
 
     event OfferMade(
         address indexed offerer,
-        address ticketContract,
+        address listedTicketContract,
+        address offeredTicketContract,
         uint256 listedTicketId,
         uint256 offerTicketId,
         uint256 topupAmount
@@ -58,7 +59,8 @@ contract TicketMarket {
 
     event OfferAccepted(
         address indexed lister,
-        address ticketContract,
+        address listedTicketContract,
+        address offeredTicketContract,
         uint256 listedTicketId,
         uint256 offerTicketId,
         uint256 topupAmount
@@ -233,7 +235,8 @@ contract TicketMarket {
     // 1. lister accepts offer > ticketMarket will pay the eth to the lister
     // 2. offerer retracts offer > ticketMarket returns eth to the offerer
     function makeOffer(
-        address ticketContract,
+        address listedTicketContract,
+        address offeredTicketContract,
         uint256 listingId,
         uint256 offeredTicketId
     ) external payable {
@@ -243,9 +246,11 @@ contract TicketMarket {
             listing.active,
             "Ticket is not listed for resale on the market"
         );
-        Ticket ticket = Ticket(ticketContract);
-        uint256 listingValue = ticket.getBasePrice(listing.ticketId);
-        uint256 offeringValue = ticket.getBasePrice(offeredTicketId);
+        Ticket listedTicket = Ticket(listedTicketContract);
+        Ticket offeredTicket = Ticket(offeredTicketContract);
+
+        uint256 listingValue = listedTicket.getBasePrice(listing.ticketId);
+        uint256 offeringValue = offeredTicket.getBasePrice(offeredTicketId);
 
         uint256 topupAmount = 0;
 
@@ -270,7 +275,8 @@ contract TicketMarket {
 
         emit OfferMade(
             msg.sender,
-            ticketContract,
+            listedTicketContract,
+            offeredTicketContract,
             listing.ticketId,
             offeredTicketId,
             topupAmount
@@ -324,7 +330,8 @@ contract TicketMarket {
     function acceptOffer(
         uint256 listingId,
         address offerer,
-        address ticketContract
+        address listedTicketContract,
+        address offeredTicketContract
     ) external payable {
         Listing storage listing = listings[listingId];
         require(listing.active, "Listing not active");
@@ -338,17 +345,20 @@ contract TicketMarket {
                 break;
             }
         }
-        Ticket ticket = Ticket(ticketContract);
+        Ticket listedTicket = Ticket(listedTicketContract);
+        Ticket offeredTicket = Ticket(offeredTicketContract);
 
         uint256 topupAmount = selectedOffer.topupAmount;
-        uint256 listedTicketValue = ticket.getBasePrice(listing.ticketId);
-        uint256 offeredTicketValue = ticket.getBasePrice(selectedOffer.offerTicketId);
+        uint256 listedTicketValue = listedTicket.getBasePrice(listing.ticketId);
+        uint256 offeredTicketValue = offeredTicket.getBasePrice(selectedOffer.offerTicketId);
 
         if (listedTicketValue > offeredTicketValue) {
             // Offerer must pay
+            // contract releases payment to the lister
             payable(listing.seller).transfer(topupAmount);
         } else if (offeredTicketValue > listedTicketValue) {
             // Lister must pay
+            // lister needs to put a msg.value > 0
             require(msg.value >= topupAmount, "Insufficient top-up amount");
             payable(selectedOffer.offerer).transfer(topupAmount);
         } else {
@@ -356,12 +366,12 @@ contract TicketMarket {
         }
 
         // Transfer tikcets
-        IERC721(ticketContract).transferFrom(
+        IERC721(listedTicketContract).transferFrom(
             address(this),
             selectedOffer.offerer,
             listing.ticketId
         );
-        IERC721(ticketContract).transferFrom(
+        IERC721(offeredTicketContract).transferFrom(
             selectedOffer.offerer,
             listing.seller,
             selectedOffer.offerTicketId
@@ -371,7 +381,8 @@ contract TicketMarket {
 
         emit OfferAccepted(
             msg.sender,
-            ticketContract,
+            listedTicketContract,
+            offeredTicketContract,
             listing.ticketId,
             selectedOffer.offerTicketId,
             topupAmount

@@ -113,19 +113,19 @@ describe("TicketMarket Contract", function () {
             .connect(organiser)
             .createTicketCategory("Normal", "NORMAL", 200, normalTicketPrice);
         const receipt = await tx.wait();
-    
+
         // Find the TicketCategoryCreated event log
         const categoryLog = receipt.logs.find((log) => log.fragment?.name === "TicketCategoryCreated");
         const normalCategoryAddress = categoryLog.args[0];
         const normalCategoryName = categoryLog.args[1];
-    
+
         expect(normalCategoryAddress).to.be.properAddress;
         expect(normalCategoryName).to.equal("Normal");
-    
+
         // Attach a contract instance if you need to interact with this ticket category
         normalTicketInstance = await ethers.getContractAt("Ticket", normalCategoryAddress);
     });
-    
+
 
     it("Buyer 1 buys a ticket", async function () {
         // Register the buyer
@@ -300,16 +300,52 @@ describe("TicketMarket Contract", function () {
 
         await normalTicketInstance.connect(buyer2).approve(await ticketMarket.getAddress(), 1);
 
-        const tx2 = await ticketMarket.connect(buyer2).listTicketforTrade(normalTicketInstance, 1);
+        // to account for commission fee
+        const topupAmount = ethers.parseEther("0.021");
+
+        // checking for buyer 2's balance needs to be done before Offer is made
+        const listersBalanceBeforeTrade = await ethers.provider.getBalance(buyer1.address);
+        const listersBalanceBefore = BigInt(listersBalanceBeforeTrade.toString());
+
+        const tradersBalanceBeforeTrade = await ethers.provider.getBalance(buyer2.address);
+        const tradersBalanceBefore = BigInt(tradersBalanceBeforeTrade.toString());
+
+        // buyer 2 makes a trade offer
+        const tx2 = await ticketMarket.connect(buyer2).makeOffer(
+            ticketInstance, normalTicketInstance, 2, 1, { value: topupAmount });
         await tx2.wait();
 
-        // check ownership transfer to ticket 
         await expect(tx2)
-            .to.emit(ticketMarket, "TicketListed")
-            .withArgs(buyer2.address, normalTicketInstance, 1, finalPrice2);
+            .to.emit(ticketMarket, "OfferMade")
+            .withArgs(buyer2.address, ticketInstance, normalTicketInstance, 3, 1, topupAmount);
 
-        expect(await normalTicketInstance.ownerOf(1)).to.equal(await ticketMarket.getAddress());
+        // buyer 1 accept's buyer 2's trade offer
+        const tx3 = await ticketMarket.connect(buyer1).acceptOffer(2, buyer2.address, ticketInstance, normalTicketInstance);
+        await tx3.wait();
+
+        await expect(tx3)
+            .to.emit(ticketMarket, "OfferAccepted")
+            .withArgs(buyer1.address, ticketInstance, normalTicketInstance, 3, 1, topupAmount);
+
+        // check ticket owners to verify trade
+        // buyer 2 is the new owner of the VIP ticket
+        // buyer 1 is the new owner of the Normal ticket
+        expect(await ticketInstance.ownerOf(3)).to.equal(buyer2.address);
+        expect(await normalTicketInstance.ownerOf(1)).to.equal(buyer1.address);
+
+        // check balance
+        const listersBalanceAfterTrade = await ethers.provider.getBalance(buyer1.address);
+        const listersBalanceAfter = BigInt(listersBalanceAfterTrade.toString());
+
+        const tradersBalanceAfterTrade = await ethers.provider.getBalance(buyer2.address);
+        const tradersBalanceAfter = BigInt(tradersBalanceAfterTrade.toString());
+
+        const listersBalanceDiff = listersBalanceAfter - listersBalanceBefore;
+        const tradersBalanceDiff = tradersBalanceBefore - tradersBalanceAfter;
+
+        // small allowance for gas fees
+        expect(listersBalanceDiff).to.be.closeTo(topupAmount, ethers.parseEther("0.0005"));
+        expect(tradersBalanceDiff).to.be.closeTo(topupAmount, ethers.parseEther("0.0005"));
     });
-
 
 });
