@@ -411,6 +411,14 @@ describe("TicketMarket Contract", function () {
             .to.emit(ticketMarket, "OfferRetracted")
             .withArgs(buyer2.address, 4, topupAmount);
 
+        // check that payment is refunded to buyer 2
+        const tradersBalanceAfterTrade = await ethers.provider.getBalance(buyer2.address);
+        const tradersBalanceAfter = BigInt(tradersBalanceAfterTrade.toString());
+
+        const tradersBalanceDiff = tradersBalanceBefore - tradersBalanceAfter;
+
+        expect(tradersBalanceDiff).to.be.closeTo(0, ethers.parseEther("0.0005"));
+
         // check that offer is removed
         const updatedOffers = await ticketMarket.connect(buyer1).checkOffers(3);
 
