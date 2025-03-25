@@ -2,12 +2,13 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("TicketMarket Contract", function () {
-    let userRegistry, ticketMarket, eventInstance, ticketInstance;
+    let userRegistry, ticketMarket, eventInstance, ticketInstance, normalTicketInstance;
     let owner, organiser, buyer1, buyer2, others;
     let eventAddress, ticketCategoryAddress;
     let ticketId = 1;
     let ticketId2 = 2;
     let ticketPrice = ethers.parseEther("0.05");
+    let normalTicketPrice = ethers.parseEther("0.03");
 
     before(async function () {
         [owner, organiser, buyer1, buyer2, ...others] = await ethers.getSigners();
@@ -46,6 +47,17 @@ describe("TicketMarket Contract", function () {
 
         // Attach the Ticket contract instance
         ticketInstance = await ethers.getContractAt("Ticket", ticketCategoryAddress);
+
+        // const tx2 = await eventInstance
+        //     .connect(organiser)
+        //     .createTicketCategory("Normal", "NORMAL", 200, normalTicketPrice);
+        // const receipt2 = await tx2.wait();
+
+        // // Confirm TicketCategoryCreated event
+        // const categoryLog2 = receipt.logs.find((log) => log.fragment?.name === "TicketCategoryCreated");
+        // const normalCategoryAddress = categoryLog.args[0];
+
+        // normalTicketInstance = await ethers.getContractAt("Ticket", normalCategoryAddress);
     });
 
     it("Owner approves an organiser & organiser registers in UserRegistry", async function () {
@@ -96,6 +108,25 @@ describe("TicketMarket Contract", function () {
         ticketInstance = await ethers.getContractAt("Ticket", ticketCategoryAddress);
     });
 
+    it("Organiser creates another ticket category via the Event contract (Normal category)", async function () {
+        const tx = await eventInstance
+            .connect(organiser)
+            .createTicketCategory("Normal", "NORMAL", 200, normalTicketPrice);
+        const receipt = await tx.wait();
+    
+        // Find the TicketCategoryCreated event log
+        const categoryLog = receipt.logs.find((log) => log.fragment?.name === "TicketCategoryCreated");
+        const normalCategoryAddress = categoryLog.args[0];
+        const normalCategoryName = categoryLog.args[1];
+    
+        expect(normalCategoryAddress).to.be.properAddress;
+        expect(normalCategoryName).to.equal("Normal");
+    
+        // Attach a contract instance if you need to interact with this ticket category
+        normalTicketInstance = await ethers.getContractAt("Ticket", normalCategoryAddress);
+    });
+    
+
     it("Buyer 1 buys a ticket", async function () {
         // Register the buyer
         const regTx = await userRegistry
@@ -144,7 +175,7 @@ describe("TicketMarket Contract", function () {
         expect(ownerOfTicket1).to.equal(buyer1.address);
     });
 
-    it("Buyer 1 lists their ticket on the resale market  and Buyer 2 purchases it successfully", async function () {
+    it("Buyer 1 lists their ticket on the resale market and Buyer 2 purchases it successfully", async function () {
         // Register buyer2
         const regTx = await userRegistry
             .connect(buyer2)
@@ -152,16 +183,17 @@ describe("TicketMarket Contract", function () {
         await regTx.wait();
         expect(await userRegistry.isRegistered(buyer2.address)).to.equal(true);
 
+        // const originalPrice = ethers.parseEther("0.06");
+
+        // const buyTx = await eventInstance
+        //     .connect(buyer1)
+        //     .buyTicket(0, { value: originalPrice });
+        // await buyTx.wait();
+
+        // expect(await ticketInstance.ownerOf(ticketId)).to.equal(buyer1.address);
+
+        // approve the ticket bought in the prev test case
         await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), ticketId);
-
-        const originalPrice = ethers.parseEther("0.06");
-
-        const buyTx = await eventInstance
-            .connect(buyer1)
-            .buyTicket(0, { value: originalPrice });
-        await buyTx.wait();
-
-        expect(await ticketInstance.ownerOf(ticketId)).to.equal(buyer1.address);
 
         const resalePrice = ethers.parseEther("0.05");
 
@@ -184,8 +216,7 @@ describe("TicketMarket Contract", function () {
     });
 
     it("Buyer 1 unlists ticket, Buyer 2 cannot buy unlisted ticket", async function () {
-        await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), ticketId2);
-
+        //buyer 1 to buy another VIP ticket
         const originalPrice = ethers.parseEther("0.06");
 
         const buyTx = await eventInstance
@@ -196,6 +227,8 @@ describe("TicketMarket Contract", function () {
         expect(await ticketInstance.ownerOf(ticketId2)).to.equal(buyer1.address);
 
         const resalePrice = ethers.parseEther("0.05");
+
+        await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), ticketId2);
 
         const tx = await ticketMarket.connect(buyer1).listTicket(ticketInstance, ticketId2, resalePrice);
         await tx.wait();
@@ -227,13 +260,11 @@ describe("TicketMarket Contract", function () {
 
     });
 
-    // need to add
+    // need to add:
     // buyer 2 make offer
     // buyer 1 accept offer > check ticket ownership and eth transfer
     it("Buyer 1 lists ticket for trade", async function () {
-        await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), 3);
-
-        const basePrice = ethers.parseEther("0.05");
+        const basePrice = ticketPrice
         const commissionRate = 500n;
         const finalPrice = basePrice + (basePrice * commissionRate) / 10000n
 
@@ -243,6 +274,8 @@ describe("TicketMarket Contract", function () {
         await buyTx.wait();
 
         expect(await ticketInstance.ownerOf(3)).to.equal(buyer1.address);
+
+        await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), 3);
 
         const tx = await ticketMarket.connect(buyer1).listTicketforTrade(ticketInstance, 3);
         await tx.wait();
@@ -254,6 +287,28 @@ describe("TicketMarket Contract", function () {
 
         expect(await ticketInstance.ownerOf(3)).to.equal(await ticketMarket.getAddress());
 
+        // buyer 2 to buy a different category of ticket
+        const basePrice2 = normalTicketPrice
+        const finalPrice2 = basePrice2 + (basePrice2 * commissionRate) / 10000n
+
+        const buyTx2 = await eventInstance
+            .connect(buyer2)
+            .buyTicket(1, { value: finalPrice2 });
+        await buyTx2.wait();
+
+        expect(await normalTicketInstance.ownerOf(1)).to.equal(buyer2.address);
+
+        await normalTicketInstance.connect(buyer2).approve(await ticketMarket.getAddress(), 1);
+
+        const tx2 = await ticketMarket.connect(buyer2).listTicketforTrade(normalTicketInstance, 1);
+        await tx2.wait();
+
+        // check ownership transfer to ticket 
+        await expect(tx2)
+            .to.emit(ticketMarket, "TicketListed")
+            .withArgs(buyer2.address, normalTicketInstance, 1, finalPrice2);
+
+        expect(await normalTicketInstance.ownerOf(1)).to.equal(await ticketMarket.getAddress());
     });
 
 
