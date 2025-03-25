@@ -260,9 +260,6 @@ describe("TicketMarket Contract", function () {
 
     });
 
-    // need to add:
-    // buyer 2 make offer
-    // buyer 1 accept offer > check ticket ownership and eth transfer
     it("Buyer 1 lists ticket for trade", async function () {
         const basePrice = ticketPrice
         const commissionRate = 500n;
@@ -346,6 +343,79 @@ describe("TicketMarket Contract", function () {
         // small allowance for gas fees
         expect(listersBalanceDiff).to.be.closeTo(topupAmount, ethers.parseEther("0.0005"));
         expect(tradersBalanceDiff).to.be.closeTo(topupAmount, ethers.parseEther("0.0005"));
+
+        // check listing is inactive
+        expect((await ticketMarket.listings(2)).active).to.be.false;
+    });
+
+    // maybe can add a retract offer test case
+    // check if balance is refunded
+    it("Buyer 2 retracts offer", async function () {
+        const basePrice = ticketPrice
+        const commissionRate = 500n;
+        const finalPrice = basePrice + (basePrice * commissionRate) / 10000n
+
+        const buyTx = await eventInstance
+            .connect(buyer1)
+            .buyTicket(0, { value: finalPrice });
+        await buyTx.wait();
+
+        expect(await ticketInstance.ownerOf(4)).to.equal(buyer1.address);
+
+        await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), 4);
+
+        const tx = await ticketMarket.connect(buyer1).listTicketforTrade(ticketInstance, 4);
+        await tx.wait();
+
+        // check ownership transfer to ticket 
+        await expect(tx)
+            .to.emit(ticketMarket, "TicketListed")
+            .withArgs(buyer1.address, ticketInstance, 4, finalPrice);
+
+        expect(await ticketInstance.ownerOf(4)).to.equal(await ticketMarket.getAddress());
+
+        // buyer 2 to buy a different category of ticket
+        const basePrice2 = normalTicketPrice
+        const finalPrice2 = basePrice2 + (basePrice2 * commissionRate) / 10000n
+
+        const buyTx2 = await eventInstance
+            .connect(buyer2)
+            .buyTicket(1, { value: finalPrice2 });
+        await buyTx2.wait();
+
+        expect(await normalTicketInstance.ownerOf(2)).to.equal(buyer2.address);
+
+        await normalTicketInstance.connect(buyer2).approve(await ticketMarket.getAddress(), 2);
+
+        // to account for commission fee
+        const topupAmount = ethers.parseEther("0.021");
+
+        // checking for buyer 2's balance needs to be done before Offer is made
+        const tradersBalanceBeforeTrade = await ethers.provider.getBalance(buyer2.address);
+        const tradersBalanceBefore = BigInt(tradersBalanceBeforeTrade.toString());
+
+        // buyer 2 makes a trade offer
+        const tx2 = await ticketMarket.connect(buyer2).makeOffer(
+            ticketInstance, normalTicketInstance, 3, 2, { value: topupAmount });
+        await tx2.wait();
+
+        await expect(tx2)
+            .to.emit(ticketMarket, "OfferMade")
+            .withArgs(buyer2.address, ticketInstance, normalTicketInstance, 4, 2, topupAmount);
+
+        // buyer 2 retracts trade offer
+        const tx3 = await ticketMarket.connect(buyer2).retractOffer(3);
+        await tx3.wait();
+
+        await expect(tx3)
+            .to.emit(ticketMarket, "OfferRetracted")
+            .withArgs(buyer2.address, 4, topupAmount);
+
+        // check that offer is removed
+        const updatedOffers = await ticketMarket.connect(buyer1).checkOffers(3);
+
+        // check that no offers exist for this listing (length = 0)
+        expect(updatedOffers.length).to.equal(0);
     });
 
 });
