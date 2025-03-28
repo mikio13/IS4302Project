@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+// Use pure ERC721 since we no longer need on-chain URI storage.
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./UserRegistry.sol";
 
-contract Ticket is ERC721URIStorage {
+contract Ticket is ERC721 {
     uint256 public constant COMMISSION_DENOMINATOR = 10000; // Basis points
 
+    // Structure to store purchase and transfer data for each ticket.
     struct TicketData {
         address originalOwner;
         uint256 purchasePrice;
@@ -23,6 +25,7 @@ contract Ticket is ERC721URIStorage {
     uint256 public totalSold;
     mapping(uint256 => TicketData) public ticketData;
 
+    // Events for logging ticket purchases and transfers.
     event TicketPurchased(
         uint256 indexed ticketId,
         address buyer,
@@ -34,7 +37,6 @@ contract Ticket is ERC721URIStorage {
         address to,
         uint256 price
     );
-    event TicketURIUpdated(uint256 indexed ticketId, string newURI);
 
     constructor(
         string memory _name,
@@ -52,11 +54,11 @@ contract Ticket is ERC721URIStorage {
         organiser = _organiser;
     }
 
-    //Users should buy via Event.sol
+    // Users buy tickets via the Event contract.
     function buyTicket(address buyer) external payable {
         require(totalSold < maxSupply, "Sold out");
 
-        // Calculate total price
+        // Calculate the total price including commission.
         uint256 totalPrice = basePrice +
             (basePrice * commissionRate) /
             COMMISSION_DENOMINATOR;
@@ -66,7 +68,7 @@ contract Ticket is ERC721URIStorage {
         totalSold++;
         uint256 ticketId = totalMinted;
 
-        // Mint to the buyer
+        // Mint the NFT to the buyer.
         _mint(buyer, ticketId);
 
         ticketData[ticketId] = TicketData({
@@ -75,7 +77,7 @@ contract Ticket is ERC721URIStorage {
             lastTransfer: block.timestamp
         });
 
-        // Refund excess if any
+        // Refund any excess ETH.
         if (msg.value > totalPrice) {
             payable(buyer).transfer(msg.value - totalPrice);
         }
@@ -83,23 +85,18 @@ contract Ticket is ERC721URIStorage {
         emit TicketPurchased(ticketId, buyer, totalPrice);
     }
 
-    // Custom function to safely transfer a ticket with an updated URI, only the event organiser can update the URI.
-    function safeTransferFromWithURI(
+    // Standard safeTransfer with an update of the last transfer timestamp.
+    function safeTransferFromWith(
         address from,
         address to,
-        uint256 ticketId,
-        string calldata newMetadataURI
+        uint256 ticketId
     ) external {
-        require(msg.sender == organiser, "Only event organiser can update URI");
         require(ownerOf(ticketId) == from, "Not the ticket owner");
 
-        // Update metadata
-        _setTokenURI(ticketId, newMetadataURI);
-
-        // Update last transfer time
+        // Update the last transfer timestamp.
         ticketData[ticketId].lastTransfer = block.timestamp;
 
-        // Perform standard ERC721 safeTransfer
+        // Perform a standard safe transfer.
         _safeTransfer(from, to, ticketId, "");
         emit TicketResold(
             ticketId,
@@ -109,19 +106,24 @@ contract Ticket is ERC721URIStorage {
         );
     }
 
-    function updateTicketURI(
-        uint256 ticketId,
-        string calldata newURI
-    ) external {
-        // If token does not exist, ownerOf(tokenId) reverts,
-        // so we do a try/catch or simply rely on revert:
-        require(msg.sender == organiser, "Only event organiser can update URI");
+    // Note: Functions that update tokenURI (safeTransferFromWithURI and updateTicketURI)
+    // have been removed because off-chain systems will handle QR code generation and metadata.
 
-        // If token does not exist, this call reverts with "ERC721: owner query for nonexistent token"
-        // address currentOwner = ownerOf(ticketId);
-        // We don't actually need currentOwner if we just wanted to ensure it exists.
+    // Returns the purchase price (base price plus commission) of a ticket.
+    function getBasePrice(uint256 ticketId) public view returns (uint256) {
+        require(
+            ticketId > 0 && ticketId <= totalMinted,
+            "Ticket does not exist"
+        );
+        return ticketData[ticketId].purchasePrice;
+    }
 
-        _setTokenURI(ticketId, newURI);
-        emit TicketURIUpdated(ticketId, newURI);
+    // Returns the original owner (as recorded at minting) of a ticket.
+    function getTicketOwner(uint256 ticketId) public view returns (address) {
+        require(
+            ticketId > 0 && ticketId <= totalMinted,
+            "Ticket does not exist"
+        );
+        return ticketData[ticketId].originalOwner;
     }
 }

@@ -6,4 +6,10 @@ module.exports = {
   localhost: {
     url: "https://127.0.0.1:8545",
   },
+  paths: {
+    sources: "./contracts",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts"
+  }
 };
