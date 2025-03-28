@@ -1,6 +1,8 @@
 # Group 5 Ticketing Platform
 
-Commands to run everything:
+Commands to run Solidity tests:
+
+npm install (to ensure that you have the updated node_modules)
 
 npx hardhat node
 
@@ -11,6 +13,12 @@ npx hardhat run scripts/deploy.js --network localhost
 npx hardhat test
 
 
-Dependencies to install:
+Steps to run Express.js frontend + backend: 
 
-npm install @openzeppelin/contracts
+cd client
+
+npm install (to ensure that you have the updated node_nodules)
+
+make sure you have mongodb running
+
+npm run server
