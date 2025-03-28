@@ -1,19 +1,18 @@
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
+
 let client = null;
-//this is the collection object for querying the users collection in the database
 let collectionUsers = null;
 
-//function to connect to db and get the collection object
+// Connect to MongoDB if not already connected
 async function initDBIfNecessary() {
     if (!client) {
-        //only connect to the database if we are not already connected
         client = await MongoClient.connect("mongodb://localhost:27017");
         const db = client.db("Authentix");
         collectionUsers = db.collection("users");
     }
 }
 
-//function to disconnect from the database
+// Disconnect from MongoDB
 async function disconnect() {
     if (client) {
         await client.close();
@@ -21,14 +20,29 @@ async function disconnect() {
     }
 }
 
+// Insert a new user
 async function insertUser(user) {
     await initDBIfNecessary();
     user.created = new Date();
     await collectionUsers.insertOne(user);
 }
 
-//export the functions so they can be used in other files
+// Retrieve all users
+async function getAllUsers() {
+    await initDBIfNecessary();
+    return collectionUsers.find().toArray();
+}
+
+// Retrieve a single user by its MongoDB ObjectId
+async function getUserById(id) {
+    await initDBIfNecessary();
+    return collectionUsers.findOne({ _id: new ObjectId(id) });
+}
+
+// Export the functions
 module.exports = {
     insertUser,
-    disconnect,
+    getAllUsers,
+    getUserById,
+    disconnect
 };
