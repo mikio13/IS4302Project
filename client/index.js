@@ -13,6 +13,7 @@ app.set("views", path.join(__dirname, "views"));
 
 // Middleware to parse URL-encoded form data.
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(__dirname));
 
 // Home page.
 app.get("/", (req, res) => {
