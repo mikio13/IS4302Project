@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 async function main() {
-    //Deploy the User contract
+    //Deploy the UserRegistry contract
     const UserRegistry = await hre.ethers.getContractFactory("UserRegistry");
     const userRegistry = await UserRegistry.deploy();
     await userRegistry.waitForDeployment();

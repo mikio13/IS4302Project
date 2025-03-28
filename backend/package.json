@@ -1,5 +1,5 @@
 {
-  "name": "client",
+  "name": "backend",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -10,10 +10,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "ejs": "^3.1.10",
+    "cors": "^2.8.5",
     "express": "^4.21.2",
     "mongodb": "^6.15.0",
-    "nodemon": "^3.1.9",
-    "qrcode": "^1.5.4"
+    "nodemon": "^3.1.9"
   }
 }
