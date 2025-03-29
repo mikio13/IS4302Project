@@ -13,9 +13,18 @@ npx hardhat run scripts/deploy.js --network localhost
 npx hardhat test
 
 
-Steps to run Express.js frontend + backend: 
+Steps to run React + Vite frontend: 
 
-cd client
+cd frontend
+
+npm install
+
+npm run dev
+
+
+Steps to run Express.js backend: (KIV this, it's only for things like Event images and other good to have things)
+
+cd backend
 
 npm install (to ensure that you have the updated node_nodules)
 
