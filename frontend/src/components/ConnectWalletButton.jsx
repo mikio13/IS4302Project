@@ -8,11 +8,11 @@ function ConnectWalletButton({ setAccount }) {
             if (account) {
                 setAccount(account);
             } else {
-                alert("Wallet connection failed or canceled.");
+                alert("Wallet connection failed or canceled by user.");
             }
         } catch (error) {
             console.error("Failed to connect wallet:", error);
-            alert("Please install or unlock MetaMask and try again.");
+            alert(error.message);
         }
     };
 
