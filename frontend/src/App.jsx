@@ -4,6 +4,8 @@ import ConnectWalletButton from "./components/ConnectWalletButton";
 import UserRegistration from "./components/UserRegistration";
 import UserDashboard from "./components/UserDashboard";
 import TicketsPage from "./pages/TicketsPage";
+import EventsPage from "./pages/EventsPage";
+import EventDetailsPage from "./pages/EventDetailsPage";
 import Navbar from "./components/Navbar";
 import { isRegistered } from "./utils/contractServices";
 import "./App.css";
@@ -60,6 +62,8 @@ function App() {
             <Routes>
               <Route path="/" element={<UserDashboard account={account} />} />
               <Route path="/tickets" element={<TicketsPage account={account} />} />
+              <Route path="/events" element={<EventsPage account={account} />} />
+              <Route path="/event/:eventAddress" element={<EventDetailsPage account={account} />} />
             </Routes>
           )}
         </main>
