@@ -1,33 +1,33 @@
-import { useState } from 'react';
-import { registerUser } from '../utils/contractServices';
+import { useState } from "react";
+import { registerUser } from "../utils/contractServices";
 
 export default function UserRegistration({ onRegistered }) {
-    const [name, setName] = useState('');
-    const [nric, setNric] = useState('');
-    const [message, setMessage] = useState('');
+    const [name, setName] = useState("");
+    const [nric, setNric] = useState("");
+    const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
         setLoading(true);
-        setMessage('');
+        setMessage("");
 
         try {
-            await registerUser(nric, name);
-            setMessage('✅ Registration successful!');
-            setName('');
-            setNric('');
-            onRegistered(); // Trigger callback to inform parent component
+            await registerUser(nric, name); // Storing NRIC in plaintext for demo purposes
+            setMessage("✅ Registration successful!");
+            setName("");
+            setNric("");
+            onRegistered(); // Inform parent component that registration is done
         } catch (error) {
-            console.error('Registration error:', error);
+            console.error("Registration error:", error);
             if (error.message.includes("Already registered")) {
-                setMessage('❌ You have already registered.');
+                setMessage("❌ You have already registered.");
             } else {
-                setMessage('❌ Registration failed.');
+                setMessage("❌ Registration failed.");
             }
         } finally {
             setLoading(false);
-            setTimeout(() => setMessage(''), 4000);
+            setTimeout(() => setMessage(""), 4000);
         }
     };
 
@@ -50,7 +50,7 @@ export default function UserRegistration({ onRegistered }) {
                     required
                 />
                 <button type="submit" disabled={loading}>
-                    {loading ? 'Registering...' : 'Register'}
+                    {loading ? "Registering..." : "Register"}
                 </button>
                 {message && <p className="message">{message}</p>}
             </form>

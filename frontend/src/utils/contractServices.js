@@ -102,3 +102,18 @@ export const getUserDetails = async (userAddress) => {
         throw error;
     }
 };
+
+export const getOwnedTickets = async (walletAddress) => {
+    return [
+        {
+            id: 1,
+            eventName: "Authentix Live 2025",
+            categoryName: "VIP",
+        },
+        {
+            id: 2,
+            eventName: "Authentix Live 2025",
+            categoryName: "General",
+        },
+    ];
+};

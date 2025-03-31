@@ -6,4 +6,4 @@ export default function UserDashboard({ account }) {
             <p>This is your dashboard, where you'll interact with tickets.</p>
         </div>
     );
-}
+}  

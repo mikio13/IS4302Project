@@ -8,7 +8,7 @@ function ConnectWalletButton({ setAccount }) {
             if (account) {
                 setAccount(account);
             } else {
-                alert("Wallet connection failed or canceled by user.");
+                alert("Wallet connection failed or canceled.");
             }
         } catch (error) {
             console.error("Failed to connect wallet:", error);
