@@ -25,6 +25,7 @@ export default function Navbar({ account }) {
                 <nav>
                     <Link to="/">🏠 Dashboard</Link>
                     <Link to="/tickets">🎫 Tickets</Link>
+                    <Link to="/events"> Events</Link>
                 </nav>
             </div>
             <div className="nav-right">

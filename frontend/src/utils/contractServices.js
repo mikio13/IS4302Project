@@ -10,7 +10,7 @@ const EVENT_ABI = EventArtifact.abi;
 const TICKET_ABI = TicketArtifact.abi;
 
 // Importing ethers.js utilities
-import { BrowserProvider, Contract } from "ethers";
+import { BrowserProvider, Contract, parseEther } from "ethers";
 
 // Importing deployed addresses from constants file
 import { USERREGISTRY_ADDRESS, TICKETING_PLATFORM_ADDRESS } from "./constants";
@@ -172,23 +172,13 @@ export const getTicketsForEvent = async (eventAddress) => {
     return tickets;
 };
 
-/**
- * 4) Buy a ticket.
- * Calls the buyTicket function on the Event contract.
- * @param {string} eventAddress - The address of the Event contract.
- * @param {number} categoryIndex - The ticket category index.
- * @param {string} paymentValue - The ETH value to send (as a string, e.g. "0.1").
- * @returns {object} Transaction receipt.
- */
 export const buyTicket = async (eventAddress, categoryIndex, paymentValue) => {
     await ensureInitialized();
     // Connect to the Event contract with the signer so we can send transactions.
     const eventInstance = new Contract(eventAddress, EVENT_ABI, signer);
-    // Convert payment value (a string) to a BigNumber using ethers.parseEther
-    const value = signer.provider ? await signer.provider.formatEther(paymentValue) : paymentValue;
-    // Alternatively, if using ethers v6: 
-    // const value = ethers.parseEther(paymentValue);
-    const tx = await eventInstance.buyTicket(categoryIndex, { value: paymentValue });
+    // Convert the payment value (a string) to a BigNumber in Wei.
+    const value = parseEther(paymentValue);
+    const tx = await eventInstance.buyTicket(categoryIndex, { value });
     await tx.wait();
     return tx;
 };
