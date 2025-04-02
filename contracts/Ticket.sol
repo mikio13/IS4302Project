@@ -123,4 +123,41 @@ contract Ticket is ERC721Enumerable {
         );
         return ticketData[ticketId].originalOwner;
     }
+
+    function getOwnedTicketIds(
+        address owner
+    ) external view returns (uint256[] memory) {
+        uint256 count = balanceOf(owner);
+        uint256[] memory tokenIds = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            tokenIds[i] = tokenOfOwnerByIndex(owner, i);
+        }
+        return tokenIds;
+    }
+
+    function getTicketDetails(
+        uint256 ticketId
+    )
+        external
+        view
+        returns (
+            uint256 purchasePrice,
+            address originalOwner,
+            uint256 lastTransfer,
+            string memory categoryName
+        )
+    {
+        require(
+            ticketId > 0 && ticketId <= totalMinted,
+            "Ticket does not exist"
+        );
+        TicketData memory data = ticketData[ticketId];
+        // Use the inherited name() function as the category name
+        return (
+            data.purchasePrice,
+            data.originalOwner,
+            data.lastTransfer,
+            name()
+        );
+    }
 }

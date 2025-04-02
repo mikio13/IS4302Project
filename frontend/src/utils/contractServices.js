@@ -27,6 +27,17 @@ export const initialize = async () => {
 
     provider = new BrowserProvider(window.ethereum);
 
+    // Override ENS resolution on local networks (chainId 31337)
+    try {
+        const network = await provider.getNetwork();
+        if (network.chainId === 31337) {
+            provider.getEnsAddress = async (name) => null;
+            provider.resolveName = async (name) => name;
+        }
+    } catch (e) {
+        console.error("Error getting network:", e);
+    }
+
     try {
         await provider.send("eth_requestAccounts", []);
     } catch (error) {
@@ -183,18 +194,25 @@ export const buyTicket = async (eventAddress, categoryIndex, paymentValue) => {
     return tx;
 };
 
-// You can leave your dummy getOwnedTickets function if needed
-export const getOwnedTickets = async (walletAddress) => {
-    return [
-        {
-            id: 1,
-            eventName: "Authentix Live 2025",
-            categoryName: "VIP",
-        },
-        {
-            id: 2,
-            eventName: "Authentix Live 2025",
-            categoryName: "General",
-        },
-    ];
+export const getOwnedTicketIds = async (ticketContractAddress, ownerAddress) => {
+    await ensureInitialized();
+    const ticketContract = new Contract(ticketContractAddress, TICKET_ABI, provider);
+    const tokenIds = await ticketContract.getOwnedTicketIds(ownerAddress);
+    return tokenIds.map(id => id.toString());
+};
+
+/**
+ * New: Retrieve full ticket details (excluding eventName, which we merge on the frontend)
+ * for a given token ID from a Ticket contract.
+ */
+export const getTicketDetails = async (ticketContractAddress, ticketId) => {
+    await ensureInitialized();
+    const ticketContract = new Contract(ticketContractAddress, TICKET_ABI, provider);
+    const details = await ticketContract.getTicketDetails(ticketId);
+    return {
+        purchasePrice: details.purchasePrice.toString(),
+        originalOwner: details.originalOwner,
+        lastTransfer: details.lastTransfer.toString(),
+        categoryName: details.categoryName
+    };
 };
