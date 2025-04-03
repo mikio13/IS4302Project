@@ -29,8 +29,7 @@ const EventDetailsPage = ({ account }) => {
     const handleBuyTicket = async (categoryIndex) => {
         try {
             setBuying(true);
-            // In a real scenario, we would calculate the proper value.
-            // Here, we assume 0.1 ETH for demonstration.
+            // In a real scenario, we would calculate the proper value. The user will choose a specifc value to send.
             const paymentValue = "0.1";
             await buyTicket(eventAddress, categoryIndex, paymentValue);
             alert("Ticket purchased successfully!");

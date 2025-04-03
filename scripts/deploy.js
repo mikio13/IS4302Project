@@ -1,42 +1,33 @@
 const hre = require("hardhat");
 
 async function main() {
-    // Retrieve the available signers: Account A (Owner), Account B (Organiser), Account C (Buyer)
-    const [accountA, accountB, accountC] = await hre.ethers.getSigners();
+    const [platformOwner, eventOrganiser, buyer] = await hre.ethers.getSigners();
 
-    console.log("Account A (Owner):", accountA.address);
-    console.log("Account B (Organiser):", accountB.address);
-    console.log("Account C (Buyer):", accountC.address);
+    console.log("Platform Owner:", platformOwner.address);
+    console.log("Event Organiser:", eventOrganiser.address);
+    console.log("Buyer:", buyer.address);
 
-    // ======================================================
-    // 1. Deploy UserRegistry using Account A
-    // ======================================================
-    const UserRegistryFactory = await hre.ethers.getContractFactory("UserRegistry", accountA);
+    // 1. Deploy UserRegistry using PlatformOwner
+    const UserRegistryFactory = await hre.ethers.getContractFactory("UserRegistry", platformOwner);
     const userRegistry = await UserRegistryFactory.deploy();
     await userRegistry.waitForDeployment();
     const userRegistryAddress = await userRegistry.getAddress();
     console.log("UserRegistry deployed to:", userRegistryAddress);
 
-    // ======================================================
-    // 2. Deploy TicketingPlatform using Account A with commission rate 500 (i.e., 5%)
-    // ======================================================
-    const TicketingPlatformFactory = await hre.ethers.getContractFactory("TicketingPlatform", accountA);
+    // 2. Deploy TicketingPlatform using PlatformOwner with commission rate 500 (5%)
+    const TicketingPlatformFactory = await hre.ethers.getContractFactory("TicketingPlatform", platformOwner);
     const ticketingPlatform = await TicketingPlatformFactory.deploy(userRegistryAddress, 500);
     await ticketingPlatform.waitForDeployment();
     const ticketingPlatformAddress = await ticketingPlatform.getAddress();
     console.log("TicketingPlatform deployed to:", ticketingPlatformAddress);
 
-    // ======================================================
-    // 3. Use Account A to approve Account B as organiser
-    // ======================================================
-    let tx = await ticketingPlatform.connect(accountA).approveOrganiser(accountB.address);
+    // 3. Use PlatformOwner to approve eventOrganiser as an Event Organiser
+    let tx = await ticketingPlatform.connect(platformOwner).approveOrganiser(eventOrganiser.address);
     await tx.wait();
-    console.log("Account B approved as organiser by Account A.");
+    console.log("Account B approved as organiser by PlatformOwner.");
 
-    // ======================================================
-    // 4. Use Account B to create an Event via TicketingPlatform
-    // ======================================================
-    tx = await ticketingPlatform.connect(accountB).createEvent("MyConcert");
+    // 4. Use eventOrganiser to create an Event via TicketingPlatform
+    tx = await ticketingPlatform.connect(eventOrganiser).createEvent("Jay Chou Concert 2025");
     let receipt = await tx.wait();
 
     // Decode the EventCreated event to get the Event contract address
@@ -45,7 +36,6 @@ async function main() {
         try {
             const parsedLog = ticketingPlatform.interface.parseLog(log);
             if (parsedLog.name === "EventCreated") {
-                // According to your tests, the event address is the second argument.
                 eventAddress = parsedLog.args[1];
                 break;
             }
@@ -58,11 +48,9 @@ async function main() {
     }
     console.log("Event deployed to:", eventAddress);
 
-    // ======================================================
-    // 5. Use Account B to create a Ticket category via the Event contract
-    // ======================================================
-    // Attach to the deployed Event contract with Account B as the signer
-    const eventInstance = await hre.ethers.getContractAt("Event", eventAddress, accountB);
+    // 5. Use eventOrganiser to create a Ticket category via the Event contract
+    // Attach to the deployed Event contract with eventOrganiser as the signer
+    const eventInstance = await hre.ethers.getContractAt("Event", eventAddress, eventOrganiser);
 
     tx = await eventInstance.createTicketCategory(
         "VIP",                // Ticket category name
@@ -78,7 +66,6 @@ async function main() {
         try {
             const parsedLog = eventInstance.interface.parseLog(log);
             if (parsedLog.name === "TicketCategoryCreated") {
-                // According to your tests, the ticket address is the first argument.
                 ticketAddress = parsedLog.args[0];
                 break;
             }

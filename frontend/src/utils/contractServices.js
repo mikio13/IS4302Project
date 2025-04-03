@@ -1,78 +1,60 @@
-// Importing ABIs
-import UserRegistryArtifact from "./UserRegistry_ABI.json";
-import TicketingPlatformArtifact from "./TicketingPlatform_ABI.json";
-import EventArtifact from "./Event_ABI.json";
-import TicketArtifact from "./Ticket_ABI.json";
+import { BrowserProvider, Contract, parseEther, isAddress } from "ethers";
 
-const UserRegistry_ABI = UserRegistryArtifact.abi;
-const TicketingPlatform_ABI = TicketingPlatformArtifact.abi;
-const EVENT_ABI = EventArtifact.abi;
-const TICKET_ABI = TicketArtifact.abi;
-
-// Importing ethers.js utilities
-import { BrowserProvider, Contract, parseEther } from "ethers";
-
-// Importing deployed addresses from constants file
+//Deployed contract addresses
+//These are fixed because we already deploy via deploy.js and they should remain fixed
 import { USERREGISTRY_ADDRESS, TICKETING_PLATFORM_ADDRESS } from "./constants";
 
-// Module-level variables for UserRegistry (you already have these)
+//ABIs
+import UserRegistry_ABI from '@/abi/UserRegistry_ABI';
+import TicketingPlatform_ABI from '@/abi/TicketingPlatform_ABI';
+import Ticket_ABI from '@/abi/Ticket_ABI';
+import Event_ABI from '@/abi/Event_ABI';
+
 let provider;
 let signer;
 let userRegistryContract;
 
 export const initialize = async () => {
-    if (typeof window.ethereum === "undefined") {
-        throw new Error("MetaMask not installed");
+    if (!window.ethereum) {
+        throw new Error("MetaMask is not installed");
     }
 
     provider = new BrowserProvider(window.ethereum);
 
-    // Override ENS resolution on local networks (chainId 31337)
-    try {
-        const network = await provider.getNetwork();
-        if (network.chainId === 31337) {
-            provider.getEnsAddress = async (name) => null;
-            provider.resolveName = async (name) => name;
-        }
-    } catch (e) {
-        console.error("Error getting network:", e);
-    }
-
     try {
         await provider.send("eth_requestAccounts", []);
-    } catch (error) {
-        throw new Error("MetaMask is locked or the user rejected the connection");
-    }
+        signer = await provider.getSigner();
+        userRegistryContract = new Contract(USERREGISTRY_ADDRESS, UserRegistry_ABI, signer);
 
-    signer = await provider.getSigner();
-    userRegistryContract = new Contract(USERREGISTRY_ADDRESS, UserRegistry_ABI, signer);
+        const network = await provider.getNetwork();
+        if (!network.ensAddress) {
+            console.info(`ENS not supported on network: ${network.name} (chainId=${network.chainId})`);
+        }
+    } catch (error) {
+        throw new Error("Failed to connect wallet: " + error.message);
+    }
 };
 
+//Ensures initialization before any contract interaction.
 const ensureInitialized = async () => {
     if (!provider || !signer || !userRegistryContract) {
         await initialize();
     }
 };
 
-/**
- * Request wallet connection explicitly.
- */
+//Prompts the user to connect their wallet.
 export const requestAccount = async () => {
     await ensureInitialized();
     try {
         const accounts = await provider.send("eth_requestAccounts", []);
         return accounts[0];
     } catch (error) {
-        console.error("Error requesting account:", error.message);
+        console.error("Wallet connection error:", error);
         return null;
     }
 };
 
-/**
- * Registers a new user on the blockchain.
- * @param {string} nric - User's NRIC (for demonstration, plaintext)
- * @param {string} name - User's name.
- */
+//Registers a user via UserRegistry.sol
 export const registerUser = async (nric, name) => {
     await ensureInitialized();
     try {
@@ -85,134 +67,152 @@ export const registerUser = async (nric, name) => {
     }
 };
 
-/**
- * Checks if a user is registered.
- * @param {string} userAddress - Ethereum address to check.
- * @returns {boolean} True if registered.
- */
-
+//Checks if a user address is registered.
 export const isRegistered = async (userAddress) => {
     await ensureInitialized();
+    if (!isAddress(userAddress)) throw new Error("Invalid Ethereum address");
+
     try {
         return await userRegistryContract.isRegistered(userAddress);
     } catch (error) {
-        console.error("Error checking registration status:", error);
+        console.error("Error checking registration:", error);
         throw error;
     }
 };
 
-/**
- * Retrieves user details.
- * @param {string} userAddress - Ethereum address of the user.
- * @returns {object} Object containing hashedNRIC, name, and registration status.
- */
+//Retrieves the full user details from the UserRegistry.
 export const getUserDetails = async (userAddress) => {
     await ensureInitialized();
+    if (!isAddress(userAddress)) throw new Error("Invalid Ethereum address");
+
     try {
         const [hashedNRIC, name, registered] = await userRegistryContract.getUserDetails(userAddress);
         return { hashedNRIC, name, registered };
     } catch (error) {
-        console.error("Error retrieving user details:", error);
+        console.error("Error getting user details:", error);
         throw error;
     }
 };
 
-/**
- * 1) View list of events.
- * Queries the TicketingPlatform contract for past EventCreated events.
- * For each event, it then fetches the event name from the Event contract.
- * @returns {Array} List of event objects with { eventAddress, eventName, organiser }.
- */
+//Fetches all past Events created via the TicketingPlatform.
 export const getEvents = async () => {
     await ensureInitialized();
-    const ticketingPlatformContract = new Contract(TICKETING_PLATFORM_ADDRESS, TicketingPlatform_ABI, provider);
+    const ticketingPlatform = new Contract(TICKETING_PLATFORM_ADDRESS, TicketingPlatform_ABI, provider);
 
-    // Create a filter for the EventCreated event (assumes event signature: EventCreated(address organiser, address eventContract))
-    const filter = ticketingPlatformContract.filters.EventCreated();
-    const logs = await ticketingPlatformContract.queryFilter(filter);
+    try {
+        const filter = ticketingPlatform.filters.EventCreated();
+        const logs = await ticketingPlatform.queryFilter(filter);
 
-    const events = [];
-    for (const log of logs) {
-        // log.args: [organiser, eventContract]
-        const eventAddress = log.args.eventContract;
-        // Create an instance of the Event contract to fetch details
-        const eventInstance = new Contract(eventAddress, EVENT_ABI, provider);
-        const eventName = await eventInstance.eventName();
-        const organiser = await eventInstance.organiser();
-        events.push({
-            eventAddress,
-            eventName,
-            organiser,
-        });
+        const events = await Promise.all(logs.map(async (log) => {
+            const eventAddress = log.args.eventContract;
+            const eventInstance = new Contract(eventAddress, Event_ABI, provider);
+            const [eventName, organiser] = await Promise.all([
+                eventInstance.eventName(),
+                eventInstance.organiser(),
+            ]);
+            return { eventAddress, eventName, organiser };
+        }));
+
+        return events;
+    } catch (error) {
+        console.error("Error fetching events:", error);
+        throw error;
     }
-    return events;
 };
 
-/**
- * 2) View a specific event.
- * Given an event contract address, returns its details.
- * @param {string} eventAddress - The address of the Event contract.
- * @returns {object} Object containing eventName, organiser, commissionRate, etc.
- */
+//Retrieves the details of a specific event
 export const getEvent = async (eventAddress) => {
     await ensureInitialized();
-    const eventInstance = new Contract(eventAddress, EVENT_ABI, provider);
-    const eventName = await eventInstance.eventName();
-    const organiser = await eventInstance.organiser();
-    const commissionRate = await eventInstance.commissionRate();
-    // You can add additional properties if needed
-    return { eventAddress, eventName, organiser, commissionRate };
+    if (!isAddress(eventAddress)) throw new Error("Invalid event address");
+
+    try {
+        const eventInstance = new Contract(eventAddress, Event_ABI, provider);
+        const [eventName, organiser, commissionRate] = await Promise.all([
+            eventInstance.eventName(),
+            eventInstance.organiser(),
+            eventInstance.commissionRate(),
+        ]);
+        return { eventAddress, eventName, organiser, commissionRate };
+    } catch (error) {
+        console.error("Error fetching event:", error);
+        throw error;
+    }
 };
 
-/**
- * 3) View tickets available for the event.
- * Queries the Event contract for past TicketCategoryCreated events.
- * @param {string} eventAddress - The address of the Event contract.
- * @returns {Array} List of ticket categories with { ticketAddress, categoryName }.
- */
+//Fetches all the Ticket contract instances for an Event contract instance
+//Basically for a particular Event, this fetches all the Ticket types/ CATs available
 export const getTicketsForEvent = async (eventAddress) => {
     await ensureInitialized();
-    const eventInstance = new Contract(eventAddress, EVENT_ABI, provider);
-    const filter = eventInstance.filters.TicketCategoryCreated();
-    const logs = await eventInstance.queryFilter(filter);
+    if (!isAddress(eventAddress)) throw new Error("Invalid event address");
 
-    const tickets = logs.map(log => ({
-        ticketAddress: log.args.ticketContract,
-        categoryName: log.args.categoryName,
-    }));
-    return tickets;
+    try {
+        const eventInstance = new Contract(eventAddress, Event_ABI, provider);
+        const filter = eventInstance.filters.TicketCategoryCreated();
+        const logs = await eventInstance.queryFilter(filter);
+
+        return logs.map((log) => ({
+            ticketAddress: log.args.ticketContract,
+            categoryName: log.args.categoryName,
+        }));
+    } catch (error) {
+        console.error("Error fetching ticket categories:", error);
+        throw error;
+    }
 };
 
+//Purchases a ticket from a specific category in an event.
 export const buyTicket = async (eventAddress, categoryIndex, paymentValue) => {
     await ensureInitialized();
-    // Connect to the Event contract with the signer so we can send transactions.
-    const eventInstance = new Contract(eventAddress, EVENT_ABI, signer);
-    // Convert the payment value (a string) to a BigNumber in Wei.
-    const value = parseEther(paymentValue);
-    const tx = await eventInstance.buyTicket(categoryIndex, { value });
-    await tx.wait();
-    return tx;
+    if (!isAddress(eventAddress)) throw new Error("Invalid event address");
+
+    try {
+        const eventInstance = new Contract(eventAddress, Event_ABI, signer);
+        const value = parseEther(paymentValue);
+        const tx = await eventInstance.buyTicket(categoryIndex, { value });
+        await tx.wait();
+        return tx;
+    } catch (error) {
+        console.error("Error buying ticket:", error);
+        throw error;
+    }
 };
 
+//Fetches token IDs owned by an address from a Ticket contract.
 export const getOwnedTicketIds = async (ticketContractAddress, ownerAddress) => {
     await ensureInitialized();
-    const ticketContract = new Contract(ticketContractAddress, TICKET_ABI, provider);
-    const tokenIds = await ticketContract.getOwnedTicketIds(ownerAddress);
-    return tokenIds.map(id => id.toString());
+    if (!isAddress(ticketContractAddress) || !isAddress(ownerAddress)) {
+        throw new Error("Invalid Ethereum address");
+    }
+
+    try {
+        const ticketContract = new Contract(ticketContractAddress, Ticket_ABI, provider);
+        const tokenIds = await ticketContract.getOwnedTicketIds(ownerAddress);
+        return tokenIds.map((id) => id.toString());
+    } catch (error) {
+        console.error("Error fetching owned ticket IDs:", error);
+        throw error;
+    }
 };
 
-/**
- * New: Retrieve full ticket details (excluding eventName, which we merge on the frontend)
- * for a given token ID from a Ticket contract.
- */
+//Fetches detailed metadata about a ticket NFT.
 export const getTicketDetails = async (ticketContractAddress, ticketId) => {
     await ensureInitialized();
-    const ticketContract = new Contract(ticketContractAddress, TICKET_ABI, provider);
-    const details = await ticketContract.getTicketDetails(ticketId);
-    return {
-        purchasePrice: details.purchasePrice.toString(),
-        originalOwner: details.originalOwner,
-        lastTransfer: details.lastTransfer.toString(),
-        categoryName: details.categoryName
-    };
+    if (!isAddress(ticketContractAddress)) {
+        throw new Error("Invalid ticket contract address");
+    }
+
+    try {
+        const ticketContract = new Contract(ticketContractAddress, Ticket_ABI, provider);
+        const details = await ticketContract.getTicketDetails(ticketId);
+
+        return {
+            purchasePrice: details.purchasePrice.toString(),
+            originalOwner: details.originalOwner,
+            lastTransfer: details.lastTransfer.toString(),
+            categoryName: details.categoryName,
+        };
+    } catch (error) {
+        console.error("Error fetching ticket details:", error);
+        throw error;
+    }
 };

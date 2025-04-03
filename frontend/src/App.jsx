@@ -6,6 +6,7 @@ import UserDashboard from "./components/UserDashboard";
 import TicketsPage from "./pages/TicketsPage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";
+import VerifyTicket from "./pages/VerifyTicket";
 import Navbar from "./components/Navbar";
 import { isRegistered } from "./utils/contractServices";
 import "./App.css";
@@ -64,6 +65,7 @@ function App() {
               <Route path="/tickets" element={<TicketsPage account={account} />} />
               <Route path="/events" element={<EventsPage account={account} />} />
               <Route path="/event/:eventAddress" element={<EventDetailsPage account={account} />} />
+              <Route path="/verify" element={<VerifyTicket />} />
             </Routes>
           )}
         </main>
