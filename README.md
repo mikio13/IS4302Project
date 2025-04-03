@@ -30,7 +30,7 @@
    | Network Name      | Hardhat             |
    | RPC URL       | http://127.0.0.1:8545    or localhost:8545      |
    | Chain ID          | `31337`         |
-   | Currency Symbol   | HardHatETH                            |
+   | Currency Symbol   | HardhatETH                            |
    | Block Explorer URL| *Leave blank*                  |
 
    <img src="./readmeAssets/metamask_fill_fields.png" alt="Fill Fields Screenshot" width="350"/>
