@@ -5,10 +5,10 @@ import { BrowserProvider, Contract, parseEther, isAddress } from "ethers";
 import { USERREGISTRY_ADDRESS, TICKETING_PLATFORM_ADDRESS } from "./constants";
 
 //ABIs
-import UserRegistry_ABI from '@/abi/UserRegistry_ABI';
-import TicketingPlatform_ABI from '@/abi/TicketingPlatform_ABI';
-import Ticket_ABI from '@/abi/Ticket_ABI';
-import Event_ABI from '@/abi/Event_ABI';
+import UserRegistry_ABI from '../abi/UserRegistry_ABI';
+import TicketingPlatform_ABI from '../abi/TicketingPlatform_ABI';
+import Ticket_ABI from '../abi/Ticket_ABI';
+import Event_ABI from '../abi/Event_ABI';
 
 let provider;
 let signer;
