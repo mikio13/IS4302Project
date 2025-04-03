@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// Use pure ERC721 since we no longer need on-chain URI storage.
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+// Import ERC721Enumerable which provides token enumeration functions.
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./UserRegistry.sol";
 
-contract Ticket is ERC721 {
+contract Ticket is ERC721Enumerable {
     uint256 public constant COMMISSION_DENOMINATOR = 10000; // Basis points
 
     // Structure to store purchase and transfer data for each ticket.
@@ -106,9 +106,6 @@ contract Ticket is ERC721 {
         );
     }
 
-    // Note: Functions that update tokenURI (safeTransferFromWithURI and updateTicketURI)
-    // have been removed because off-chain systems will handle QR code generation and metadata.
-
     // Returns the purchase price (base price plus commission) of a ticket.
     function getBasePrice(uint256 ticketId) public view returns (uint256) {
         require(
@@ -125,5 +122,42 @@ contract Ticket is ERC721 {
             "Ticket does not exist"
         );
         return ticketData[ticketId].originalOwner;
+    }
+
+    function getOwnedTicketIds(
+        address owner
+    ) external view returns (uint256[] memory) {
+        uint256 count = balanceOf(owner);
+        uint256[] memory tokenIds = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            tokenIds[i] = tokenOfOwnerByIndex(owner, i);
+        }
+        return tokenIds;
+    }
+
+    function getTicketDetails(
+        uint256 ticketId
+    )
+        external
+        view
+        returns (
+            uint256 purchasePrice,
+            address originalOwner,
+            uint256 lastTransfer,
+            string memory categoryName
+        )
+    {
+        require(
+            ticketId > 0 && ticketId <= totalMinted,
+            "Ticket does not exist"
+        );
+        TicketData memory data = ticketData[ticketId];
+        // Use the inherited name() function as the category name
+        return (
+            data.purchasePrice,
+            data.originalOwner,
+            data.lastTransfer,
+            name()
+        );
     }
 }

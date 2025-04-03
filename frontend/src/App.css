@@ -1,63 +1,152 @@
+/* Global box-sizing reset */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* Global styles */
 body,
 html {
     margin: 0;
     padding: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f5f7fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
 }
 
-.container {
+/* Container for the entire app */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Main content area */
+.main-content {
+    flex: 1;
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Welcome screen (before login) */
+.welcome-screen {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 100vh;
+    height: 80vh;
     text-align: center;
 }
 
-h1 {
+.welcome-screen h1 {
+    font-size: 3rem;
     margin-bottom: 20px;
-    color: #333;
 }
 
+/* Navbar styles */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #1a1a1a;
+    color: #fff;
+    padding: 10px 20px;
+    margin-bottom: 20px;
+}
+
+.navbar .nav-left {
+    display: flex;
+    align-items: center;
+}
+
+.navbar .nav-left h2 {
+    margin-right: 20px;
+    font-size: 1.5rem;
+}
+
+.navbar nav a {
+    margin-right: 15px;
+    color: #ccc;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.navbar nav a:hover {
+    color: #fff;
+}
+
+.navbar .nav-right {
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+/* Form card for registration */
 .form-card {
     background-color: #fff;
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    width: 320px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    width: 400px;
+    max-width: 90%;
+    margin: 40px auto;
 }
 
-input {
+.form-card h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.form-card input {
     width: 100%;
     padding: 10px;
     margin-bottom: 10px;
+    border: 1px solid #ddd;
     border-radius: 4px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
 }
 
-input:focus {
-    outline: none;
-    border-color: #4a90e2;
-}
-
-button {
+.form-card button {
     width: 100%;
     padding: 10px;
-    background-color: #4a90e2;
+    background-color: #1a73e8;
+    color: #fff;
     border: none;
     border-radius: 4px;
-    color: white;
     cursor: pointer;
+    font-size: 1rem;
 }
 
-button:hover {
-    background-color: #357ab8;
+.form-card button:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
 }
 
 .message {
+    text-align: center;
     margin-top: 10px;
-    font-weight: bold;
-    color: #555;
+    font-weight: 500;
+}
+
+/* Ticket page styles */
+.tickets-page {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+.ticket-item {
+    border-bottom: 1px solid #ddd;
+    padding: 10px 0;
+}
+
+.ticket-item button {
+    margin-top: 5px;
+    padding: 5px 10px;
+    background-color: #1a73e8;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
 }
