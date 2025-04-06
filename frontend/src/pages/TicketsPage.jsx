@@ -50,34 +50,45 @@ export default function TicketsPage({ account }) {
         fetchCategories();
     }, [account, eventAddress]);
 
-    // Fetch owned tickets
     useEffect(() => {
         const fetchTickets = async () => {
-            if (account && ticketCategories.length > 0) {
-                let ownedTickets = [];
-                for (const category of ticketCategories) {
-                    try {
-                        const tokenIds = await getOwnedTicketIds(category.ticketAddress, account);
-                        for (const tokenId of tokenIds) {
-                            const details = await getTicketDetails(category.ticketAddress, tokenId);
-                            ownedTickets.push({
-                                id: tokenId,
-                                ticketContract: category.ticketAddress,
-                                categoryName: details.categoryName,
-                                eventName: eventName ?? "",
-                                purchasePrice: details.purchasePrice,
-                                lastTransfer: details.lastTransfer
-                            });
+            if (account) {
+                try {
+                    const events = await getEvents();
+                    let allTickets = [];
+
+                    for (const event of events) {
+                        const eventName = event.eventName;
+                        const eventAddr = event.eventAddress;
+
+                        const categories = await getTicketsForEvent(eventAddr);
+                        for (const category of categories) {
+                            const tokenIds = await getOwnedTicketIds(category.ticketAddress, account);
+
+                            for (const tokenId of tokenIds) {
+                                const details = await getTicketDetails(category.ticketAddress, tokenId);
+
+                                allTickets.push({
+                                    id: tokenId,
+                                    ticketContract: category.ticketAddress,
+                                    categoryName: details.categoryName,
+                                    eventName: eventName,
+                                    purchasePrice: details.purchasePrice,
+                                    lastTransfer: details.lastTransfer,
+                                });
+                            }
                         }
-                    } catch (error) {
-                        console.error(`Error fetching tickets from ${category.ticketAddress}:`, error);
                     }
+
+                    setTickets(allTickets);
+                } catch (error) {
+                    console.error("Error fetching all tickets:", error);
                 }
-                setTickets(ownedTickets);
             }
         };
+
         fetchTickets();
-    }, [account, ticketCategories, eventName]);
+    }, [account]);
 
     // Fetch user details
     useEffect(() => {

@@ -4,7 +4,9 @@ import { useNavigate } from "react-router-dom";
 
 const EventsPage = ({ account }) => {
     const [events, setEvents] = useState([]);
+    const [filteredEvents, setFilteredEvents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -12,6 +14,7 @@ const EventsPage = ({ account }) => {
             try {
                 const eventsList = await getEvents();
                 setEvents(eventsList);
+                setFilteredEvents(eventsList); // initialize with full list
             } catch (error) {
                 console.error("Error fetching events:", error);
             } finally {
@@ -22,28 +25,55 @@ const EventsPage = ({ account }) => {
         fetchEvents();
     }, []);
 
+    // Update filtered list when search term changes
+    useEffect(() => {
+        const term = searchTerm.toLowerCase();
+
+        const filtered = events.filter((event) => {
+            return (
+                event.eventName.toLowerCase().includes(term) ||
+                event.organiser.toLowerCase().includes(term)
+            );
+        });
+
+        setFilteredEvents(filtered);
+    }, [searchTerm, events]);
+
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
+    };
+
     if (loading) {
         return <div>Loading events...</div>;
-    }
-
-    if (!events.length) {
-        return <div>No events available.</div>;
     }
 
     return (
         <div>
             <h2>Available Events</h2>
-            <ul>
-                {events.map((event) => (
-                    <li key={event.eventAddress}>
-                        <h3>{event.eventName}</h3>
-                        <p>Organiser: {event.organiser}</p>
-                        <button onClick={() => navigate(`/event/${event.eventAddress}`)}>
-                            View Details
-                        </button>
-                    </li>
-                ))}
-            </ul>
+
+            <input
+                type="text"
+                placeholder="Search by event name or organiser"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                style={{ padding: "8px", marginBottom: "16px", width: "100%" }}
+            />
+
+            {filteredEvents.length === 0 ? (
+                <div>No matching events found.</div>
+            ) : (
+                <ul>
+                    {filteredEvents.map((event) => (
+                        <li key={event.eventAddress}>
+                            <h3>{event.eventName}</h3>
+                            <p>Organiser: {event.organiser}</p>
+                            <button onClick={() => navigate(`/event/${event.eventAddress}`)}>
+                                View Details
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 };
