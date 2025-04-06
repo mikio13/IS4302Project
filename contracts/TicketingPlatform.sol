@@ -17,6 +17,10 @@ contract TicketingPlatform is AccessControl {
     // The commission rate is in basis points so 500 = 5 %
     uint256 public commissionRate;
 
+    mapping(address => address[]) private organiserToEvents;
+
+    address[] private allEvents;
+
     event OrganiserApproved(address organiser);
     event EventCreated(address indexed organiser, address eventContract);
 
@@ -40,13 +44,14 @@ contract TicketingPlatform is AccessControl {
     function createEvent(
         string calldata eventName
     ) external onlyRole(ORGANISER_ROLE) returns (address) {
-        // Deploy the Event contract
         Event newEvent = new Event(
             msg.sender,
             address(userRegistry),
             commissionRate,
             eventName
         );
+        organiserToEvents[msg.sender].push(address(newEvent));
+        allEvents.push(address(newEvent));
 
         emit EventCreated(msg.sender, address(newEvent));
         return address(newEvent);
@@ -57,5 +62,15 @@ contract TicketingPlatform is AccessControl {
         uint256 newRate
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         commissionRate = newRate;
+    }
+
+    function getEventsByOrganiser(
+        address organiser
+    ) external view returns (address[] memory) {
+        return organiserToEvents[organiser];
+    }
+
+    function getAllEvents() external view returns (address[] memory) {
+        return allEvents;
     }
 }

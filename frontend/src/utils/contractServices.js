@@ -100,11 +100,9 @@ export const getEvents = async () => {
     const ticketingPlatform = new Contract(TICKETING_PLATFORM_ADDRESS, TicketingPlatform_ABI, provider);
 
     try {
-        const filter = ticketingPlatform.filters.EventCreated();
-        const logs = await ticketingPlatform.queryFilter(filter);
+        const eventAddresses = await ticketingPlatform.getAllEvents();
 
-        const events = await Promise.all(logs.map(async (log) => {
-            const eventAddress = log.args.eventContract;
+        const events = await Promise.all(eventAddresses.map(async (eventAddress) => {
             const eventInstance = new Contract(eventAddress, Event_ABI, provider);
             const [eventName, organiser] = await Promise.all([
                 eventInstance.eventName(),
@@ -115,7 +113,7 @@ export const getEvents = async () => {
 
         return events;
     } catch (error) {
-        console.error("Error fetching events:", error);
+        console.error("Error fetching all events:", error);
         throw error;
     }
 };

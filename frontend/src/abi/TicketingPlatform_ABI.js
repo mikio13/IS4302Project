@@ -215,6 +215,38 @@ const TicketingPlatform_ABI = [
         "type": "function"
     },
     {
+        "inputs": [],
+        "name": "getAllEvents",
+        "outputs": [
+            {
+                "internalType": "address[]",
+                "name": "",
+                "type": "address[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "organiser",
+                "type": "address"
+            }
+        ],
+        "name": "getEventsByOrganiser",
+        "outputs": [
+            {
+                "internalType": "address[]",
+                "name": "",
+                "type": "address[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
         "inputs": [
             {
                 "internalType": "bytes32",
