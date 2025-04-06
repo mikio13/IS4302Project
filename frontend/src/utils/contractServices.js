@@ -145,13 +145,18 @@ export const getTicketsForEvent = async (eventAddress) => {
 
     try {
         const eventInstance = new Contract(eventAddress, Event_ABI, provider);
-        const filter = eventInstance.filters.TicketCategoryCreated();
-        const logs = await eventInstance.queryFilter(filter);
+        const ticketAddresses = await eventInstance.getTicketCategories();
 
-        return logs.map((log) => ({
-            ticketAddress: log.args.ticketContract,
-            categoryName: log.args.categoryName,
+        const ticketInfos = await Promise.all(ticketAddresses.map(async (ticketAddress) => {
+            const ticketInstance = new Contract(ticketAddress, Ticket_ABI, provider);
+            const categoryName = await ticketInstance.name();
+            return {
+                ticketAddress,
+                categoryName,
+            };
         }));
+
+        return ticketInfos;
     } catch (error) {
         console.error("Error fetching ticket categories:", error);
         throw error;
