@@ -14,81 +14,6 @@ export default function TicketsPage({ account }) {
     const [userDetails, setUserDetails] = useState(null);
     const [qrData, setQrData] = useState("");
     const [showQR, setShowQR] = useState(false);
-    const [ticketCategories, setTicketCategories] = useState([]);
-    const [eventAddress, setEventAddress] = useState(null);
-    const [eventName, setEventName] = useState(null);
-
-    // Fetch latest event details
-    useEffect(() => {
-        const fetchEvent = async () => {
-            try {
-                const events = await getEvents();
-                if (events.length > 0) {
-                    const latest = events[events.length - 1];
-                    setEventAddress(latest.eventAddress);
-                    setEventName(latest.eventName);
-                }
-            } catch (error) {
-                console.error("Failed to fetch events:", error);
-            }
-        };
-        fetchEvent();
-    }, []);
-
-    // Fetch ticket categories for the event
-    useEffect(() => {
-        const fetchCategories = async () => {
-            if (account && eventAddress) {
-                try {
-                    const categories = await getTicketsForEvent(eventAddress);
-                    setTicketCategories(categories);
-                } catch (error) {
-                    console.error("Error fetching ticket categories:", error);
-                }
-            }
-        };
-        fetchCategories();
-    }, [account, eventAddress]);
-
-    useEffect(() => {
-        const fetchTickets = async () => {
-            if (account) {
-                try {
-                    const events = await getEvents();
-                    let allTickets = [];
-
-                    for (const event of events) {
-                        const eventName = event.eventName;
-                        const eventAddr = event.eventAddress;
-
-                        const categories = await getTicketsForEvent(eventAddr);
-                        for (const category of categories) {
-                            const tokenIds = await getOwnedTicketIds(category.ticketAddress, account);
-
-                            for (const tokenId of tokenIds) {
-                                const details = await getTicketDetails(category.ticketAddress, tokenId);
-
-                                allTickets.push({
-                                    id: tokenId,
-                                    ticketContract: category.ticketAddress,
-                                    categoryName: details.categoryName,
-                                    eventName: eventName,
-                                    purchasePrice: details.purchasePrice,
-                                    lastTransfer: details.lastTransfer,
-                                });
-                            }
-                        }
-                    }
-
-                    setTickets(allTickets);
-                } catch (error) {
-                    console.error("Error fetching all tickets:", error);
-                }
-            }
-        };
-
-        fetchTickets();
-    }, [account]);
 
     // Fetch user details
     useEffect(() => {
@@ -105,9 +30,50 @@ export default function TicketsPage({ account }) {
         fetchUserDetails();
     }, [account]);
 
-    // Generate QR code payload when user clicks "View QR"
+    // Fetch all tickets owned by the user across all events and categories
+    useEffect(() => {
+        const fetchTickets = async () => {
+            if (!account) return;
+
+            try {
+                const events = await getEvents();
+                let allTickets = [];
+
+                for (const event of events) {
+                    const eventName = event.eventName;
+                    const eventAddr = event.eventAddress;
+
+                    const categories = await getTicketsForEvent(eventAddr);
+                    for (const category of categories) {
+                        const tokenIds = await getOwnedTicketIds(category.ticketAddress, account);
+
+                        for (const tokenId of tokenIds) {
+                            const details = await getTicketDetails(category.ticketAddress, tokenId);
+
+                            allTickets.push({
+                                id: tokenId,
+                                ticketContract: category.ticketAddress,
+                                categoryName: details.categoryName,
+                                eventName,
+                                purchasePrice: details.purchasePrice,
+                                lastTransfer: details.lastTransfer
+                            });
+                        }
+                    }
+                }
+
+                setTickets(allTickets);
+            } catch (error) {
+                console.error("Error fetching all tickets:", error);
+            }
+        };
+
+        fetchTickets();
+    }, [account]);
+
+    // Generate QR code payload
     const handleViewQR = (ticket) => {
-        if (!userDetails || !eventName) {
+        if (!userDetails || !ticket.eventName) {
             alert("User or event info not available.");
             return;
         }
