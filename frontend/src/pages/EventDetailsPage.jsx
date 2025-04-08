@@ -1,21 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { getEvent, getTicketsForEvent, buyTicket } from "../utils/contractServices";
+import { useParams, useNavigate } from "react-router-dom";
+import { getEvent } from "../utils/contractServices";
 
 const EventDetailsPage = ({ account }) => {
     const { eventAddress } = useParams();
     const [eventDetails, setEventDetails] = useState(null);
-    const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [buying, setBuying] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchEventDetails = async () => {
             try {
                 const details = await getEvent(eventAddress);
                 setEventDetails(details);
-                const ticketCategories = await getTicketsForEvent(eventAddress);
-                setTickets(ticketCategories);
             } catch (error) {
                 console.error("Error fetching event details:", error);
             } finally {
@@ -26,49 +23,36 @@ const EventDetailsPage = ({ account }) => {
         fetchEventDetails();
     }, [eventAddress]);
 
-    const handleBuyTicket = async (categoryIndex) => {
+    const handleJoinQueue = async () => {
         try {
-            setBuying(true);
-            // In a real scenario, we would calculate the proper value. The user will choose a specifc value to send.
-            const paymentValue = "0.1";
-            await buyTicket(eventAddress, categoryIndex, paymentValue);
-            alert("Ticket purchased successfully!");
+            const res = await fetch("http://localhost:3000/queue/demo-join", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ wallet: account, eventAddress }),
+            });
+
+            if (res.ok) {
+                navigate(`/waiting-room/${eventAddress}`);
+            } else {
+                alert("Failed to join demo queue.");
+            }
         } catch (error) {
-            console.error("Error buying ticket:", error);
-            alert("Error buying ticket. See console for details.");
-        } finally {
-            setBuying(false);
+            console.error("Error joining demo queue:", error);
+            alert("Something went wrong while joining the queue.");
         }
     };
 
-    if (loading) {
-        return <div>Loading event details...</div>;
-    }
-
-    if (!eventDetails) {
-        return <div>Event not found.</div>;
-    }
+    if (loading) return <div>Loading event details...</div>;
+    if (!eventDetails) return <div>Event not found.</div>;
 
     return (
-        <div>
+        <div className="eventDetailsPage">
             <h2>{eventDetails.eventName}</h2>
             <p>Organiser: {eventDetails.organiser}</p>
             <p>Commission Rate: {eventDetails.commissionRate.toString()}</p>
-            <h3>Ticket Categories</h3>
-            {tickets.length ? (
-                <ul>
-                    {tickets.map((ticket, index) => (
-                        <li key={ticket.ticketAddress}>
-                            <p>Category: {ticket.categoryName}</p>
-                            <button onClick={() => handleBuyTicket(index)} disabled={buying}>
-                                {buying ? "Processing..." : "Buy Ticket"}
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            ) : (
-                <p>No tickets available for this event.</p>
-            )}
+            <button onClick={handleJoinQueue} style={{ padding: "12px 20px", fontSize: "16px" }}>
+                Join Waiting Room
+            </button>
         </div>
     );
 };

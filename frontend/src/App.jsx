@@ -66,6 +66,7 @@ function App() {
               <Route path="/tickets" element={<TicketsPage account={account} />} />
               <Route path="/events" element={<EventsPage account={account} />} />
               <Route path="/event/:eventAddress" element={<EventDetailsPage account={account} />} />
+              <Route path="/waiting-room/:eventAddress" element={<WaitingRoom account={account} />} />
               <Route path="/verify" element={<VerifyTicket />} />
               <Route path="/waitingRoom" element={<WaitingRoom />} />
             </Routes>

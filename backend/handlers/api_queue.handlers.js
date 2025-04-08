@@ -1,7 +1,9 @@
 const {
     addToQueue,
     getQueueList,
-    advanceQueue
+    advanceQueue,
+    resetQueue,
+    seedQueueWithFakeUsers
 } = require("../lib/database");
 
 const enqueueUser = async (req, res) => {
@@ -22,8 +24,31 @@ const advanceQueueDemo = async (req, res) => {
     res.status(200).json({ success: true });
 };
 
+const resetQueueHandler = async (req, res) => {
+    const { eventAddress } = req.query;
+
+    if (!eventAddress) {
+        return res.status(400).json({ error: "eventAddress is required" });
+    }
+
+    await resetQueue(eventAddress);
+    res.status(200).json({ success: true, message: `Queue for event ${eventAddress} reset.` });
+};
+
+const demoJoinHandler = async (req, res) => {
+    const { eventAddress, wallet } = req.body;
+    if (!eventAddress || !wallet) {
+        return res.status(400).json({ error: "Missing eventAddress or wallet" });
+    }
+
+    await seedQueueWithFakeUsers(eventAddress, wallet);
+    res.status(201).json({ success: true });
+};
+
 module.exports = {
     enqueueUser,
     getQueue,
-    advanceQueueDemo
+    advanceQueueDemo,
+    resetQueueHandler,
+    demoJoinHandler
 };

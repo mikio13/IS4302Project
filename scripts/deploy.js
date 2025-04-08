@@ -28,7 +28,7 @@ async function main() {
 
     // 4. Create Multiple Events
     const eventNames = [
-        "Jay Chou Concert 2025",
+        "TAEYEON CONCERT - The TENSE in SINGAPORE",
         "Singapore Tech Expo",
         "Marina Bay Carnival"
     ];
