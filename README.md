@@ -6,15 +6,17 @@
 
 2. `npx hardhat node` (Launches a local Ethereum blockchain powered by Hardhat on `http://127.0.0.1:8545`.)
 
-3. `npx hardhat compile` (Compiles all the Solidity smart contracts in the `contracts/` folder.)
+3. Open a new terminal window and continue.
 
-4. `npx hardhat run scripts/deploy.js --network localhost` (Deploys the contracts to the local Hardhat blockchain, we need to run this for the frontend demo to work)
+4. `npx hardhat compile` (Compiles all the Solidity smart contracts in the `contracts/` folder.)
 
-5. `npx hardhat test` (Runs all the test files inside `IS4302Project/test/`.)
+5. `npx hardhat run scripts/deploy.js --network localhost` (Deploys the contracts to the local Hardhat blockchain, we need to run this for the frontend demo to work)
 
-6. All of the sections after this are just for the frontend demo, which is focused on showcasing the QR code feature. You can still use all of the key features just from the Solidity smart contracts.
+6. `npx hardhat test` (Runs all the test files inside `IS4302Project/test/`.)
 
-## 🦊 Steps to Set Up MetaMask for the Frontend Demo
+7. All of the sections after this are just for the frontend demo, which is focused on showcasing the QR code feature. You can still use all of the key features just from the Solidity smart contracts.
+
+## 🦊 Steps to Set Up MetaMask for the Demo
 
 1. **Open MetaMask** in your browser extension.
 
@@ -43,25 +45,36 @@
 
    <img src="./readmeAssets/metamask_import_account.png" alt="Import Account Screenshot" width="350"/>
 
-## Steps to run React + Vite frontend: 
+## Steps to run the demo: 
 
-1. Complete steps **1–4** from the Solidity section above.
+1. `npx hardhat node` (This starts a local Ethereum blockchain using Hardhat. It runs on http://localhost:8545)
 
-2. `cd frontend`
+### Setting up Express.js + MongoDB backend
 
-3. `npm install` (Installs all frontend dependencies.)
+2. Open another new terminal window
 
-4. `npm run dev` (Starts the React + Vite frontend)
+3. Ensure that MongoDB is running on your system at the default address (mongodb://localhost:27017).
 
-5. `http://localhost:5173/` (Open your browser and navigate to this url.)
+4. `cd backend` 
 
+5. `npm install` (Installs all backend dependencies)
 
-## Steps to run Express.js backend: (KIV this, haven't decided whether we really need this)
+6. `npm run server` (Starts the Express.js + MongoDB backend)
 
-1. `cd backend`
+### Setting up React + Vite frontend
 
-2. `npm install` (to ensure that you have the updated node_nodules)
+7. Open another new terminal window
 
-3. make sure you have mongodb running
+8. `npm run prepareFrontend` (This is a custom script defined in IS4302Project/package.json)
+   This command runs these 3 commands:
+   `npx hardhat compile` (Compiles the Solidity contracts)
+   `node scripts/copyABIs.js` (Copies the contract ABIs into the frontend.)
+   `npx hardhat run scripts/deploy.js --network localhost` (Deploys all contracts to the local Hardhat blockchain & sets them up for the demo)
 
-4. `npm run server`
+9. `cd frontend`
+
+10. `npm install` (Installs all frontend dependencies)
+
+11. `npm run dev` (Starts the React + Vite frontend)
+
+12. `http://localhost:5173/` (Open your browser and navigate to this url)

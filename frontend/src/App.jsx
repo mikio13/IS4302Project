@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ConnectWalletButton from "./components/ConnectWalletButton";
 import UserRegistration from "./components/UserRegistration";
-import UserDashboard from "./components/UserDashboard";
+import UserDashboard from "./pages/UserDashboard";
 import TicketsPage from "./pages/TicketsPage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";
 import VerifyTicket from "./pages/VerifyTicket";
+import WaitingRoom from "./pages/WaitingRoom";
 import Navbar from "./components/Navbar";
 import { isRegistered } from "./utils/contractServices";
 import "./App.css";
@@ -65,7 +66,9 @@ function App() {
               <Route path="/tickets" element={<TicketsPage account={account} />} />
               <Route path="/events" element={<EventsPage account={account} />} />
               <Route path="/event/:eventAddress" element={<EventDetailsPage account={account} />} />
+              <Route path="/waiting-room/:eventAddress" element={<WaitingRoom account={account} />} />
               <Route path="/verify" element={<VerifyTicket />} />
+              <Route path="/waitingRoom" element={<WaitingRoom />} />
             </Routes>
           )}
         </main>

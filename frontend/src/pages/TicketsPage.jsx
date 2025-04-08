@@ -9,77 +9,14 @@ import {
 import QRCode from "react-qr-code";
 import { encode as base64urlEncode } from "js-base64";
 
+// Displays all tickets owned by the current user and allows viewing a scannable QR code for verification
 export default function TicketsPage({ account }) {
-    const [tickets, setTickets] = useState([]);
-    const [userDetails, setUserDetails] = useState(null);
-    const [qrData, setQrData] = useState("");
-    const [showQR, setShowQR] = useState(false);
-    const [ticketCategories, setTicketCategories] = useState([]);
-    const [eventAddress, setEventAddress] = useState(null);
-    const [eventName, setEventName] = useState(null);
+    const [tickets, setTickets] = useState([]); // List of all user's tickets
+    const [userDetails, setUserDetails] = useState(null); // Contains user's name and hashed NRIC
+    const [qrData, setQrData] = useState(""); // Data embedded in the QR code
+    const [showQR, setShowQR] = useState(false); // Controls QR code modal visibility
 
-    // Fetch latest event details
-    useEffect(() => {
-        const fetchEvent = async () => {
-            try {
-                const events = await getEvents();
-                if (events.length > 0) {
-                    const latest = events[events.length - 1];
-                    setEventAddress(latest.eventAddress);
-                    setEventName(latest.eventName);
-                }
-            } catch (error) {
-                console.error("Failed to fetch events:", error);
-            }
-        };
-        fetchEvent();
-    }, []);
-
-    // Fetch ticket categories for the event
-    useEffect(() => {
-        const fetchCategories = async () => {
-            if (account && eventAddress) {
-                try {
-                    const categories = await getTicketsForEvent(eventAddress);
-                    setTicketCategories(categories);
-                } catch (error) {
-                    console.error("Error fetching ticket categories:", error);
-                }
-            }
-        };
-        fetchCategories();
-    }, [account, eventAddress]);
-
-    // Fetch owned tickets
-    useEffect(() => {
-        const fetchTickets = async () => {
-            if (account && ticketCategories.length > 0) {
-                let ownedTickets = [];
-                for (const category of ticketCategories) {
-                    try {
-                        const tokenIds = await getOwnedTicketIds(category.ticketAddress, account);
-                        for (const tokenId of tokenIds) {
-                            const details = await getTicketDetails(category.ticketAddress, tokenId);
-                            ownedTickets.push({
-                                id: tokenId,
-                                ticketContract: category.ticketAddress,
-                                categoryName: details.categoryName,
-                                eventName: eventName ?? "",
-                                purchasePrice: details.purchasePrice,
-                                lastTransfer: details.lastTransfer
-                            });
-                        }
-                    } catch (error) {
-                        console.error(`Error fetching tickets from ${category.ticketAddress}:`, error);
-                    }
-                }
-                setTickets(ownedTickets);
-            }
-        };
-        fetchTickets();
-    }, [account, ticketCategories, eventName]);
-
-    // Fetch user details
+    // Fetch the user's details from the blockchain
     useEffect(() => {
         const fetchUserDetails = async () => {
             if (account) {
@@ -94,13 +31,57 @@ export default function TicketsPage({ account }) {
         fetchUserDetails();
     }, [account]);
 
-    // Generate QR code payload when user clicks "View QR"
+    // Fetches tickets the user owns across all events and categories
+    useEffect(() => {
+        const fetchTickets = async () => {
+            if (!account) return;
+
+            try {
+                const events = await getEvents();
+                let allTickets = [];
+
+                for (const event of events) {
+                    const eventName = event.eventName;
+                    const eventAddr = event.eventAddress;
+
+                    // Get all ticket categories for this event
+                    const categories = await getTicketsForEvent(eventAddr);
+                    for (const category of categories) {
+                        // Get the ticket IDs owned by this user in this category
+                        const tokenIds = await getOwnedTicketIds(category.ticketAddress, account);
+
+                        for (const tokenId of tokenIds) {
+                            const details = await getTicketDetails(category.ticketAddress, tokenId);
+
+                            allTickets.push({
+                                id: tokenId,
+                                ticketContract: category.ticketAddress,
+                                categoryName: details.categoryName,
+                                eventName,
+                                purchasePrice: details.purchasePrice,
+                                lastTransfer: details.lastTransfer
+                            });
+                        }
+                    }
+                }
+
+                setTickets(allTickets);
+            } catch (error) {
+                console.error("Error fetching all tickets:", error);
+            }
+        };
+
+        fetchTickets();
+    }, [account]);
+
+    // Opens a modal with a QR code containing ticket metadata + user identity for scanning at entry
     const handleViewQR = (ticket) => {
-        if (!userDetails || !eventName) {
+        if (!userDetails || !ticket.eventName) {
             alert("User or event info not available.");
             return;
         }
 
+        // Create payload object
         const payload = {
             ticketId: ticket.id,
             ticketContract: ticket.ticketContract,
@@ -110,6 +91,7 @@ export default function TicketsPage({ account }) {
             nric: userDetails.hashedNRIC
         };
 
+        // Encode and generate URL for QR payload
         const encoded = base64urlEncode(JSON.stringify(payload));
         const qrUrl = `${window.location.origin}/verify?data=${encoded}`;
         setQrData(qrUrl);
@@ -119,10 +101,13 @@ export default function TicketsPage({ account }) {
     return (
         <div className="tickets-page">
             <h2>Your Tickets</h2>
+
+            {/* If user owns no tickets */}
             {tickets.length === 0 ? (
                 <p>You don't own any tickets yet.</p>
             ) : (
                 <ul>
+                    {/* Render each ticket */}
                     {tickets.map((ticket, index) => (
                         <li key={index} className="ticket-item">
                             <strong>Event:</strong> {ticket.eventName} <br />
@@ -133,6 +118,8 @@ export default function TicketsPage({ account }) {
                     ))}
                 </ul>
             )}
+
+            {/* QR Code Modal */}
             {showQR && (
                 <div className="qr-modal" style={modalStyles}>
                     <h3>Scan at Event</h3>
@@ -145,6 +132,7 @@ export default function TicketsPage({ account }) {
     );
 }
 
+// Styling for QR code modal
 const modalStyles = {
     position: "fixed",
     top: "50%",

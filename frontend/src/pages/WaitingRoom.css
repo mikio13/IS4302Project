@@ -1,0 +1,208 @@
+/* ---------- MASTHEAD ---------- */
+.masthead {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.masthead-bg {
+    position: absolute;
+    inset: 0;
+    background-image: url('/eventImage.jpg');
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.3) blur(6px);
+    transform: scale(1.05);
+    z-index: 1;
+}
+
+.masthead-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 1200px;
+    padding: 0 2rem;
+}
+
+.event-poster {
+    max-width: 1024px;
+    width: 100%;
+    height: auto;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+}
+
+.masthead-text {
+    width: 100%;
+    max-width: 1024px;
+    color: white;
+    text-align: left;
+    padding-left: 0.25rem;
+}
+
+.masthead-text p {
+    margin: 0;
+    font-size: 1rem;
+    color: #ccc;
+    white-space: nowrap;
+}
+
+.masthead-text .sep {
+    margin: 0 0.5rem;
+}
+
+.masthead-text h1 {
+    margin-top: 0.25rem;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+}
+
+/* ---------- MAIN CONTENT ---------- */
+.content-container {
+    width: 100%;
+    padding: 2rem 5%;
+    box-sizing: border-box;
+}
+
+.event-subtitle {
+    font-size: 0.95rem;
+    color: #555;
+    margin-bottom: 1rem;
+}
+
+.button-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.button-row button {
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.button-row button:hover {
+    background-color: #ebebeb;
+}
+
+/* ---------- PROGRESS STEPS ---------- */
+.progress-steps {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    font-weight: bold;
+    color: #999;
+}
+
+.step.active {
+    color: #673ab7;
+}
+
+/* ---------- WAITING BOX ---------- */
+.waiting-box {
+    background-color: #f3f0ff;
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 2rem;
+    border: 1px solid #ddd;
+}
+
+.waiting-box h2 {
+    margin-bottom: 1rem;
+}
+
+.people-ahead {
+    font-size: 1.25rem;
+    margin: 1rem 0;
+}
+
+.progress-bar-container {
+    width: 100%;
+    background-color: #ddd;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 20px;
+    margin: 1rem 0;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: #673ab7;
+    transition: width 0.5s ease;
+}
+
+.queue-id {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* ---------- QUEUE TIPS HEADING ---------- */
+.queue-tips-heading {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: #222;
+    margin: 2rem 0 1rem 0;
+}
+
+/* ---------- QUEUE TIPS BOX ---------- */
+.queue-tips-container {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    /* Stronger shadow */
+}
+
+/* ---------- QUEUE TIPS LAYOUT ---------- */
+.queue-tips {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.tip {
+    flex: 1;
+    min-width: 250px;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.tip-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+}
+
+.tip h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: #222;
+}
+
+.tip p {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.875rem;
+    color: #666;
+}

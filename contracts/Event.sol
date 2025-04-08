@@ -61,4 +61,12 @@ contract Event {
         Ticket category = ticketCategories[categoryIndex];
         category.buyTicket{value: msg.value}(msg.sender);
     }
+
+    function getTicketCategories() external view returns (address[] memory) {
+        address[] memory addresses = new address[](ticketCategories.length);
+        for (uint256 i = 0; i < ticketCategories.length; i++) {
+            addresses[i] = address(ticketCategories[i]);
+        }
+        return addresses;
+    }
 }

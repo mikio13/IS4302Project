@@ -5,5 +5,8 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.2.0"
+  },
+  "scripts": {
+    "prepareFrontend": "npx hardhat compile && node scripts/copyABIs.js && npx hardhat run scripts/deploy.js --network localhost"
   }
 }

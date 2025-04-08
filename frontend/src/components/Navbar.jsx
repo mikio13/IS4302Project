@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getUserDetails } from "../utils/contractServices";
 
+// This navbar will have links to the default dashboard page, tickets and events page. It will also show the user's info
 export default function Navbar({ account }) {
     const [user, setUser] = useState({ name: "", hashedNRIC: "" });
 
     useEffect(() => {
+        // Fetch the user's name and hashed NRIC from the blockchain
         const fetchUserDetails = async () => {
             try {
                 const details = await getUserDetails(account);
@@ -15,6 +17,7 @@ export default function Navbar({ account }) {
             }
         };
 
+        // Only fetch details if wallet is connected
         if (account) fetchUserDetails();
     }, [account]);
 
