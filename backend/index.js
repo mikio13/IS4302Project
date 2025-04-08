@@ -6,13 +6,13 @@ const cors = require("cors");
 app.use(cors());
 app.use(express.json());
 
-const userRoutes = require("./routes/api_users.routes");
+const queueRoutes = require("./routes/api_queue.routes");
 
 app.get("/", (req, res) => {
     res.send("Hello World!");
 });
 
-app.use("/users", userRoutes);
+app.use("/queue", queueRoutes);
 
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);

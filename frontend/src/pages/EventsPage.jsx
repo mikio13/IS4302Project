@@ -48,7 +48,7 @@ const EventsPage = ({ account }) => {
     }
 
     return (
-        <div>
+        <div className="eventsPage">
             <h2>Available Events</h2>
 
             <input

@@ -7,6 +7,7 @@ import TicketsPage from "./pages/TicketsPage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";
 import VerifyTicket from "./pages/VerifyTicket";
+import WaitingRoom from "./pages/WaitingRoom";
 import Navbar from "./components/Navbar";
 import { isRegistered } from "./utils/contractServices";
 import "./App.css";
@@ -66,6 +67,7 @@ function App() {
               <Route path="/events" element={<EventsPage account={account} />} />
               <Route path="/event/:eventAddress" element={<EventDetailsPage account={account} />} />
               <Route path="/verify" element={<VerifyTicket />} />
+              <Route path="/waitingRoom" element={<WaitingRoom />} />
             </Routes>
           )}
         </main>
