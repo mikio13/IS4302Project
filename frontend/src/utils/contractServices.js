@@ -4,7 +4,7 @@ import { BrowserProvider, Contract, parseEther, isAddress } from "ethers";
 //These are fixed because we already deploy via deploy.js and they should remain fixed
 import { USERREGISTRY_ADDRESS, TICKETING_PLATFORM_ADDRESS } from "./constants";
 
-//ABIs
+//ABIs, we need these so that we can call the functions in our Solidity Contracts
 import UserRegistry_ABI from '../abi/UserRegistry_ABI';
 import TicketingPlatform_ABI from '../abi/TicketingPlatform_ABI';
 import Ticket_ABI from '../abi/Ticket_ABI';
@@ -35,14 +35,14 @@ export const initialize = async () => {
     }
 };
 
-//Ensures initialization before any contract interaction.
+// Ensures initialisation before any contract interaction.
 const ensureInitialized = async () => {
     if (!provider || !signer || !userRegistryContract) {
         await initialize();
     }
 };
 
-//Prompts the user to connect their wallet.
+// Prompts the user to connect their wallet.
 export const requestAccount = async () => {
     await ensureInitialized();
     try {
@@ -54,7 +54,7 @@ export const requestAccount = async () => {
     }
 };
 
-//Registers a user via UserRegistry.sol
+// Registers a user via UserRegistry.sol
 export const registerUser = async (nric, name) => {
     await ensureInitialized();
     try {
@@ -67,7 +67,7 @@ export const registerUser = async (nric, name) => {
     }
 };
 
-//Checks if a user address is registered.
+// Checks if a user address is registered.
 export const isRegistered = async (userAddress) => {
     await ensureInitialized();
     if (!isAddress(userAddress)) throw new Error("Invalid Ethereum address");
@@ -80,7 +80,7 @@ export const isRegistered = async (userAddress) => {
     }
 };
 
-//Retrieves the full user details from the UserRegistry.
+// Retrieves the full user details from the UserRegistry.
 export const getUserDetails = async (userAddress) => {
     await ensureInitialized();
     if (!isAddress(userAddress)) throw new Error("Invalid Ethereum address");
@@ -94,7 +94,7 @@ export const getUserDetails = async (userAddress) => {
     }
 };
 
-//Fetches all past Events created via the TicketingPlatform.
+// Fetches all past Events created via the TicketingPlatform.
 export const getEvents = async () => {
     await ensureInitialized();
     const ticketingPlatform = new Contract(TICKETING_PLATFORM_ADDRESS, TicketingPlatform_ABI, provider);
@@ -118,7 +118,7 @@ export const getEvents = async () => {
     }
 };
 
-//Retrieves the details of a specific event
+// Retrieves the details of a specific event
 export const getEvent = async (eventAddress) => {
     await ensureInitialized();
     if (!isAddress(eventAddress)) throw new Error("Invalid event address");
@@ -137,8 +137,8 @@ export const getEvent = async (eventAddress) => {
     }
 };
 
-//Fetches all the Ticket contract instances for an Event contract instance
-//Basically for a particular Event, this fetches all the Ticket types/ CATs available
+// Fetches all the Ticket contract instances for an Event contract instance
+// Basically for a particular Event, this fetches all the Ticket types/ CATs available
 export const getTicketsForEvent = async (eventAddress) => {
     await ensureInitialized();
     if (!isAddress(eventAddress)) throw new Error("Invalid event address");
@@ -163,7 +163,7 @@ export const getTicketsForEvent = async (eventAddress) => {
     }
 };
 
-//Purchases a ticket from a specific category in an event.
+// Purchases a ticket from a specific category in an event.
 export const buyTicket = async (eventAddress, categoryIndex, paymentValue) => {
     await ensureInitialized();
     if (!isAddress(eventAddress)) throw new Error("Invalid event address");
@@ -180,7 +180,7 @@ export const buyTicket = async (eventAddress, categoryIndex, paymentValue) => {
     }
 };
 
-//Fetches token IDs owned by an address from a Ticket contract.
+// Fetches token IDs owned by an address from a Ticket contract.
 export const getOwnedTicketIds = async (ticketContractAddress, ownerAddress) => {
     await ensureInitialized();
     if (!isAddress(ticketContractAddress) || !isAddress(ownerAddress)) {
@@ -197,7 +197,7 @@ export const getOwnedTicketIds = async (ticketContractAddress, ownerAddress) => 
     }
 };
 
-//Fetches detailed metadata about a ticket NFT.
+// Fetches detailed metadata about a ticket NFT.
 export const getTicketDetails = async (ticketContractAddress, ticketId) => {
     await ensureInitialized();
     if (!isAddress(ticketContractAddress)) {
@@ -220,6 +220,7 @@ export const getTicketDetails = async (ticketContractAddress, ticketId) => {
     }
 };
 
+// Fetches the price of a Ticket used in WaitingRoom.jsx so the buyer knows how much a Ticket costs before buying
 export const getTicketPrice = async (ticketContractAddress) => {
     await ensureInitialized();
     const ticketInstance = new Contract(ticketContractAddress, Ticket_ABI, provider);
