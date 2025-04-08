@@ -66,9 +66,13 @@
 7. Open another new terminal window
 
 8. `npm run prepareFrontend` (This is a custom script defined in IS4302Project/package.json)
-   This command runs these 3 commands:
-   `npx hardhat compile` (Compiles the Solidity contracts)
-   `node scripts/copyABIs.js` (Copies the contract ABIs into the frontend.)
+   
+   This command will run the 3 commands below: <br />
+   
+   `npx hardhat compile` (Compiles the Solidity contracts)<br />
+   
+   `node scripts/copyABIs.js` (Copies the contract ABIs into the frontend.)<br />
+   
    `npx hardhat run scripts/deploy.js --network localhost` (Deploys all contracts to the local Hardhat blockchain & sets them up for the demo)
 
 10. `cd frontend`
