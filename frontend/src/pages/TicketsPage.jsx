@@ -9,13 +9,14 @@ import {
 import QRCode from "react-qr-code";
 import { encode as base64urlEncode } from "js-base64";
 
+// Displays all tickets owned by the current user and allows viewing a scannable QR code for verification
 export default function TicketsPage({ account }) {
-    const [tickets, setTickets] = useState([]);
-    const [userDetails, setUserDetails] = useState(null);
-    const [qrData, setQrData] = useState("");
-    const [showQR, setShowQR] = useState(false);
+    const [tickets, setTickets] = useState([]); // List of all user's tickets
+    const [userDetails, setUserDetails] = useState(null); // Contains user's name and hashed NRIC
+    const [qrData, setQrData] = useState(""); // Data embedded in the QR code
+    const [showQR, setShowQR] = useState(false); // Controls QR code modal visibility
 
-    // Fetch user details
+    // Fetch the user's details from the blockchain
     useEffect(() => {
         const fetchUserDetails = async () => {
             if (account) {
@@ -30,7 +31,7 @@ export default function TicketsPage({ account }) {
         fetchUserDetails();
     }, [account]);
 
-    // Fetch all tickets owned by the user across all events and categories
+    // Fetches tickets the user owns across all events and categories
     useEffect(() => {
         const fetchTickets = async () => {
             if (!account) return;
@@ -43,8 +44,10 @@ export default function TicketsPage({ account }) {
                     const eventName = event.eventName;
                     const eventAddr = event.eventAddress;
 
+                    // Get all ticket categories for this event
                     const categories = await getTicketsForEvent(eventAddr);
                     for (const category of categories) {
+                        // Get the ticket IDs owned by this user in this category
                         const tokenIds = await getOwnedTicketIds(category.ticketAddress, account);
 
                         for (const tokenId of tokenIds) {
@@ -71,13 +74,14 @@ export default function TicketsPage({ account }) {
         fetchTickets();
     }, [account]);
 
-    // Generate QR code payload
+    // Opens a modal with a QR code containing ticket metadata + user identity for scanning at entry
     const handleViewQR = (ticket) => {
         if (!userDetails || !ticket.eventName) {
             alert("User or event info not available.");
             return;
         }
 
+        // Create payload object
         const payload = {
             ticketId: ticket.id,
             ticketContract: ticket.ticketContract,
@@ -87,6 +91,7 @@ export default function TicketsPage({ account }) {
             nric: userDetails.hashedNRIC
         };
 
+        // Encode and generate URL for QR payload
         const encoded = base64urlEncode(JSON.stringify(payload));
         const qrUrl = `${window.location.origin}/verify?data=${encoded}`;
         setQrData(qrUrl);
@@ -96,10 +101,13 @@ export default function TicketsPage({ account }) {
     return (
         <div className="tickets-page">
             <h2>Your Tickets</h2>
+
+            {/* If user owns no tickets */}
             {tickets.length === 0 ? (
                 <p>You don't own any tickets yet.</p>
             ) : (
                 <ul>
+                    {/* Render each ticket */}
                     {tickets.map((ticket, index) => (
                         <li key={index} className="ticket-item">
                             <strong>Event:</strong> {ticket.eventName} <br />
@@ -110,6 +118,8 @@ export default function TicketsPage({ account }) {
                     ))}
                 </ul>
             )}
+
+            {/* QR Code Modal */}
             {showQR && (
                 <div className="qr-modal" style={modalStyles}>
                     <h3>Scan at Event</h3>
@@ -122,6 +132,7 @@ export default function TicketsPage({ account }) {
     );
 }
 
+// Styling for QR code modal
 const modalStyles = {
     position: "fixed",
     top: "50%",

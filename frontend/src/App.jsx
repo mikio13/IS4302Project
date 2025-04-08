@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ConnectWalletButton from "./components/ConnectWalletButton";
 import UserRegistration from "./components/UserRegistration";
-import UserDashboard from "./components/UserDashboard";
+import UserDashboard from "./pages/UserDashboard";
 import TicketsPage from "./pages/TicketsPage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";

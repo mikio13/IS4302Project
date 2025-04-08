@@ -2,12 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getEvent } from "../utils/contractServices";
 
+// Displays event details and lets the user join the waiting room queue
 const EventDetailsPage = ({ account }) => {
-    const { eventAddress } = useParams();
+    const { eventAddress } = useParams(); // Get the event address from the URL
     const [eventDetails, setEventDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
+    // Fetches event metadata (name, organiser, commission rate) from blockchain
     useEffect(() => {
         const fetchEventDetails = async () => {
             try {
@@ -23,6 +25,8 @@ const EventDetailsPage = ({ account }) => {
         fetchEventDetails();
     }, [eventAddress]);
 
+    // Called when user clicks "Join Waiting Room"
+    // We use /queue/demo-join to insert 3 fake users + real user
     const handleJoinQueue = async () => {
         try {
             const res = await fetch("http://localhost:3000/queue/demo-join", {
@@ -31,6 +35,7 @@ const EventDetailsPage = ({ account }) => {
                 body: JSON.stringify({ wallet: account, eventAddress }),
             });
 
+            // Navigate to WaitingRoom page only if join was successful
             if (res.ok) {
                 navigate(`/waiting-room/${eventAddress}`);
             } else {
@@ -49,7 +54,8 @@ const EventDetailsPage = ({ account }) => {
         <div className="eventDetailsPage">
             <h2>{eventDetails.eventName}</h2>
             <p>Organiser: {eventDetails.organiser}</p>
-            <p>Commission Rate: {eventDetails.commissionRate.toString()}</p>
+
+            {/* Button to join the queue */}
             <button onClick={handleJoinQueue} style={{ padding: "12px 20px", fontSize: "16px" }}>
                 Join Waiting Room
             </button>

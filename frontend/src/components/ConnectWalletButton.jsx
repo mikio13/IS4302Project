@@ -1,12 +1,14 @@
 import React from "react";
 import { requestAccount } from "../utils/contractServices";
 
+// This component helps to trigger the MetaMask wallet connection
 function ConnectWalletButton({ setAccount }) {
+    // Handles MetaMask connection and updates the connected account state
     const connectWallet = async () => {
         try {
             const account = await requestAccount();
             if (account) {
-                setAccount(account);
+                setAccount(account); // Update app-level account state
             } else {
                 alert("Wallet connection failed or canceled.");
             }

@@ -66,7 +66,7 @@ async function createEventWithTickets(eventName, ticketingPlatform, organiser) {
     const categoryName = "VIP";
     const symbol = `VIP${Math.floor(Math.random() * 1000)}`; // make unique symbols
     const totalSupply = 100;
-    const basePrice = hre.ethers.parseEther("0.05");
+    const basePrice = hre.ethers.parseEther("0.05"); //The base price is 0.05 eth with 5% commission, so each ticket costs 0.0525 eth for buyers
 
     const categoryTx = await eventInstance.createTicketCategory(categoryName, symbol, totalSupply, basePrice);
     const categoryReceipt = await categoryTx.wait();

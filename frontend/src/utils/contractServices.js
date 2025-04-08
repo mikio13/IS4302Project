@@ -219,3 +219,20 @@ export const getTicketDetails = async (ticketContractAddress, ticketId) => {
         throw error;
     }
 };
+
+export const getTicketPrice = async (ticketContractAddress) => {
+    await ensureInitialized();
+    const ticketInstance = new Contract(ticketContractAddress, Ticket_ABI, provider);
+
+    try {
+        const basePrice = await ticketInstance.basePrice(); // BigInt
+        const commissionRate = await ticketInstance.commissionRate(); // BigInt
+        const commissionDenominator = 10000n;
+
+        const totalPrice = basePrice + (basePrice * commissionRate) / commissionDenominator;
+        return totalPrice.toString(); // Return as string of wei
+    } catch (error) {
+        console.error("Error fetching ticket price:", error);
+        throw error;
+    }
+};

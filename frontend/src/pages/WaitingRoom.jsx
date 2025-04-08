@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import "./WaitingRoom.css";
-import { buyTicket, getTicketsForEvent } from "../utils/contractServices";
+import { buyTicket, getTicketsForEvent, getTicketPrice } from "../utils/contractServices";
+import { formatEther } from "ethers";
 
 const WaitingRoom = ({ account }) => {
     const { eventAddress } = useParams();
@@ -30,17 +31,27 @@ const WaitingRoom = ({ account }) => {
             }
         };
 
-        const fetchTickets = async () => {
+        const fetchTicketsWithPrices = async () => {
             try {
-                const tickets = await getTicketsForEvent(eventAddress);
-                setTicketCategories(tickets);
+                const categories = await getTicketsForEvent(eventAddress);
+                const withPrices = await Promise.all(
+                    categories.map(async (ticket) => {
+                        const priceInWei = await getTicketPrice(ticket.ticketAddress);
+                        return {
+                            ...ticket,
+                            price: formatEther(priceInWei), // convert to ETH string
+                            priceInWei
+                        };
+                    })
+                );
+                setTicketCategories(withPrices);
             } catch (error) {
                 console.error("Failed to load ticket categories:", error);
             }
         };
 
         fetchQueue();
-        fetchTickets();
+        fetchTicketsWithPrices();
 
         const interval = setInterval(fetchQueue, 3000);
         return () => clearInterval(interval);
@@ -57,10 +68,11 @@ const WaitingRoom = ({ account }) => {
     const handleBuyTicket = async () => {
         try {
             setBuying(true);
-            const paymentValue = "0.1";
-            await buyTicket(eventAddress, selectedCategoryIndex, paymentValue);
+            const selectedTicket = ticketCategories[selectedCategoryIndex];
+            const ethPrice = selectedTicket.price; // string in ETH
 
-            // ✅ Remove user from queue
+            await buyTicket(eventAddress, selectedCategoryIndex, ethPrice);
+
             await fetch("http://localhost:3000/queue/complete", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -115,7 +127,7 @@ const WaitingRoom = ({ account }) => {
                                     >
                                         {ticketCategories.map((ticket, index) => (
                                             <option key={ticket.ticketAddress} value={index}>
-                                                {ticket.categoryName}
+                                                {ticket.categoryName} – {ticket.price} ETH
                                             </option>
                                         ))}
                                     </select>

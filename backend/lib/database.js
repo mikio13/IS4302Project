@@ -2,6 +2,7 @@ const { MongoClient } = require("mongodb");
 let client = null;
 let collectionQueue = null;
 
+// Connects to MongoDB and sets up the "waitingRoom" collection if not already connected
 async function initDBIfNecessary() {
     if (!client) {
         client = await MongoClient.connect("mongodb://localhost:27017");
@@ -10,6 +11,8 @@ async function initDBIfNecessary() {
     }
 }
 
+// Adds a wallet address to the queue for a specific event
+// If the wallet is already in the queue, it will return the existing entry
 async function addToQueue(wallet, eventAddress) {
     await initDBIfNecessary();
     const queue = await collectionQueue.find({ eventAddress }).sort({ joinedAt: 1 }).toArray();
@@ -28,11 +31,13 @@ async function addToQueue(wallet, eventAddress) {
     return entry;
 }
 
+// Returns the full queue list for a specific event, sorted by joined time
 async function getQueueList(eventAddress) {
     await initDBIfNecessary();
     return await collectionQueue.find({ eventAddress }).sort({ joinedAt: 1 }).toArray();
 }
 
+// Advances the queue for a specific event by removing the first user and marking the next as "ready"
 async function advanceQueue(eventAddress) {
     await initDBIfNecessary();
     const queue = await collectionQueue.find({ eventAddress }).sort({ joinedAt: 1 }).toArray();
@@ -49,11 +54,14 @@ async function advanceQueue(eventAddress) {
     }
 }
 
+// Deletes all queue entries for a specific event — used to reset the queue
 async function resetQueue(eventAddress) {
     await initDBIfNecessary();
     await collectionQueue.deleteMany({ eventAddress });
 }
 
+// Inserts 3 fake users ahead of the real wallet, then inserts the real user
+// Also marks the first person in the resulting queue as "ready"
 async function seedQueueWithFakeUsers(eventAddress, realWallet, numFake = 3) {
     await initDBIfNecessary();
 
@@ -88,6 +96,7 @@ async function seedQueueWithFakeUsers(eventAddress, realWallet, numFake = 3) {
     }
 }
 
+// Removes a specific user from the queue after successful purchase
 async function removeUserFromQueue(wallet, eventAddress) {
     await initDBIfNecessary();
     await collectionQueue.deleteOne({ wallet, eventAddress });
