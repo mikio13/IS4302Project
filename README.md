@@ -71,10 +71,10 @@
    `node scripts/copyABIs.js` (Copies the contract ABIs into the frontend.)
    `npx hardhat run scripts/deploy.js --network localhost` (Deploys all contracts to the local Hardhat blockchain & sets them up for the demo)
 
-9. `cd frontend`
+10. `cd frontend`
 
-10. `npm install` (Installs all frontend dependencies)
+11. `npm install` (Installs all frontend dependencies)
 
-11. `npm run dev` (Starts the React + Vite frontend)
+12. `npm run dev` (Starts the React + Vite frontend)
 
-12. `http://localhost:5173/` (Open your browser and navigate to this url)
+13. `http://localhost:5173/` (Open your browser and navigate to this url)
