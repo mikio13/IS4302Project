@@ -88,10 +88,16 @@ async function seedQueueWithFakeUsers(eventAddress, realWallet, numFake = 3) {
     }
 }
 
+async function removeUserFromQueue(wallet, eventAddress) {
+    await initDBIfNecessary();
+    await collectionQueue.deleteOne({ wallet, eventAddress });
+}
+
 module.exports = {
     addToQueue,
     getQueueList,
     advanceQueue,
     resetQueue,
-    seedQueueWithFakeUsers
+    seedQueueWithFakeUsers,
+    removeUserFromQueue
 };

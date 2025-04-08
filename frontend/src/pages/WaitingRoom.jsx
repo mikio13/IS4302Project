@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import "./WaitingRoom.css";
-import { buyTicket } from "../utils/contractServices";
+import { buyTicket, getTicketsForEvent } from "../utils/contractServices";
 
 const WaitingRoom = ({ account }) => {
     const { eventAddress } = useParams();
@@ -9,6 +9,8 @@ const WaitingRoom = ({ account }) => {
     const [position, setPosition] = useState(null);
     const [userReady, setUserReady] = useState(false);
     const [buying, setBuying] = useState(false);
+    const [ticketCategories, setTicketCategories] = useState([]);
+    const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
 
     useEffect(() => {
         const fetchQueue = async () => {
@@ -28,7 +30,18 @@ const WaitingRoom = ({ account }) => {
             }
         };
 
+        const fetchTickets = async () => {
+            try {
+                const tickets = await getTicketsForEvent(eventAddress);
+                setTicketCategories(tickets);
+            } catch (error) {
+                console.error("Failed to load ticket categories:", error);
+            }
+        };
+
         fetchQueue();
+        fetchTickets();
+
         const interval = setInterval(fetchQueue, 3000);
         return () => clearInterval(interval);
     }, [eventAddress, account]);
@@ -44,13 +57,20 @@ const WaitingRoom = ({ account }) => {
     const handleBuyTicket = async () => {
         try {
             setBuying(true);
-            const categoryIndex = 0; // hardcoded for demo
-            const paymentValue = "0.1"; // ETH or MATIC depending on network
-            await buyTicket(eventAddress, categoryIndex, paymentValue);
+            const paymentValue = "0.1";
+            await buyTicket(eventAddress, selectedCategoryIndex, paymentValue);
+
+            // ✅ Remove user from queue
+            await fetch("http://localhost:3000/queue/complete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ wallet: account, eventAddress }),
+            });
+
             alert("Ticket purchased successfully!");
         } catch (error) {
             console.error("Error buying ticket:", error);
-            alert("Ticket purchase failed.");
+            alert("Purchase failed.");
         } finally {
             setBuying(false);
         }
@@ -82,7 +102,28 @@ const WaitingRoom = ({ account }) => {
                     {userReady ? (
                         <>
                             <h2>You’re Up!</h2>
-                            <p>Please proceed to buy your ticket now.</p>
+                            <p>Please choose your ticket category and proceed with your purchase.</p>
+
+                            {ticketCategories.length > 0 ? (
+                                <div style={{ marginBottom: "1rem" }}>
+                                    <label htmlFor="ticket-category">Ticket Category:</label>
+                                    <select
+                                        id="ticket-category"
+                                        value={selectedCategoryIndex}
+                                        onChange={(e) => setSelectedCategoryIndex(parseInt(e.target.value))}
+                                        style={{ marginLeft: "1rem", padding: "6px" }}
+                                    >
+                                        {ticketCategories.map((ticket, index) => (
+                                            <option key={ticket.ticketAddress} value={index}>
+                                                {ticket.categoryName}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            ) : (
+                                <p>Loading ticket categories...</p>
+                            )}
+
                             <button onClick={handleBuyTicket} disabled={buying}>
                                 {buying ? "Processing..." : "Buy Ticket"}
                             </button>
