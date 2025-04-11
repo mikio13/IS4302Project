@@ -152,12 +152,11 @@ contract Ticket is ERC721Enumerable {
             "Ticket does not exist"
         );
         TicketData memory data = ticketData[ticketId];
-        // Use the inherited name() function as the category name
         return (
             data.purchasePrice,
             data.originalOwner,
             data.lastTransfer,
-            name()
+            name() // Use the inherited name() function as the category name
         );
     }
 }

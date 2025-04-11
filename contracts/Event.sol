@@ -4,13 +4,14 @@ pragma solidity ^0.8.0;
 import "./UserRegistry.sol";
 import "./Ticket.sol";
 
+// Each Event is a separate contract that issues Ticket categories and handles primary sales
 contract Event {
-    address public immutable organiser;
-    UserRegistry public immutable userRegistry;
-    uint256 public commissionRate;
+    address public immutable organiser; // Address of the approved organiser who created this Event
+    UserRegistry public immutable userRegistry; // Shared registry for verifying user registrations
+    uint256 public commissionRate; // Platform commission in basis points (e.g., 500 = 5%)
     string public eventName;
 
-    Ticket[] public ticketCategories;
+    Ticket[] public ticketCategories; // List of Ticket category contracts created for this event
 
     event TicketCategoryCreated(address ticketContract, string categoryName);
 
@@ -26,7 +27,7 @@ contract Event {
         eventName = _eventName;
     }
 
-    // Creates a new Ticket Category for this Event
+    // Organisers can create ticket categories (e.g., VIP, GA)
     function createTicketCategory(
         string calldata name,
         string calldata symbol,
@@ -44,24 +45,21 @@ contract Event {
             address(userRegistry),
             organiser
         );
-        ticketCategories.push(newCategory);
 
+        ticketCategories.push(newCategory);
         emit TicketCategoryCreated(address(newCategory), name);
     }
 
-    // This is where users will buy tickets
-    // The user only pays; no metadataURI is required from them
+    // Public ticket purchase entry point
     function buyTicket(uint256 categoryIndex) external payable {
         require(userRegistry.isRegistered(msg.sender), "Unregistered user");
-        require(
-            categoryIndex < ticketCategories.length,
-            "Invalid category index"
-        );
+        require(categoryIndex < ticketCategories.length, "Invalid category");
 
         Ticket category = ticketCategories[categoryIndex];
         category.buyTicket{value: msg.value}(msg.sender);
     }
 
+    // Returns addresses of all ticket categories for this event
     function getTicketCategories() external view returns (address[] memory) {
         address[] memory addresses = new address[](ticketCategories.length);
         for (uint256 i = 0; i < ticketCategories.length; i++) {

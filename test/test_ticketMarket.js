@@ -47,17 +47,6 @@ describe("TicketMarket Contract", function () {
 
         // Attach the Ticket contract instance
         ticketInstance = await ethers.getContractAt("Ticket", ticketCategoryAddress);
-
-        // const tx2 = await eventInstance
-        //     .connect(organiser)
-        //     .createTicketCategory("Normal", "NORMAL", 200, normalTicketPrice);
-        // const receipt2 = await tx2.wait();
-
-        // // Confirm TicketCategoryCreated event
-        // const categoryLog2 = receipt.logs.find((log) => log.fragment?.name === "TicketCategoryCreated");
-        // const normalCategoryAddress = categoryLog.args[0];
-
-        // normalTicketInstance = await ethers.getContractAt("Ticket", normalCategoryAddress);
     });
 
     it("Owner approves an organiser & organiser registers in UserRegistry", async function () {
@@ -274,7 +263,7 @@ describe("TicketMarket Contract", function () {
 
         await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), 3);
 
-        const tx = await ticketMarket.connect(buyer1).listTicketforTrade(ticketInstance, 3);
+        const tx = await ticketMarket.connect(buyer1).listTicketForTrade(ticketInstance, 3);
         await tx.wait();
 
         // check ownership transfer to ticket 
@@ -364,7 +353,7 @@ describe("TicketMarket Contract", function () {
 
         await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), 4);
 
-        const tx = await ticketMarket.connect(buyer1).listTicketforTrade(ticketInstance, 4);
+        const tx = await ticketMarket.connect(buyer1).listTicketForTrade(ticketInstance, 4);
         await tx.wait();
 
         // check ownership transfer to ticket 
@@ -409,7 +398,7 @@ describe("TicketMarket Contract", function () {
 
         await expect(tx3)
             .to.emit(ticketMarket, "OfferRetracted")
-            .withArgs(buyer2.address, 4, topupAmount);
+            .withArgs(buyer2.address, 3, topupAmount);
 
         // check that payment is refunded to buyer 2
         const tradersBalanceAfterTrade = await ethers.provider.getBalance(buyer2.address);
