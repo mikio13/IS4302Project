@@ -1,6 +1,7 @@
 const { MongoClient } = require("mongodb");
 let client = null;
 let collectionQueue = null;
+let collectionUsers = null;
 
 // Connects to MongoDB and sets up the "waitingRoom" collection if not already connected
 async function initDBIfNecessary() {
@@ -8,7 +9,22 @@ async function initDBIfNecessary() {
         client = await MongoClient.connect("mongodb://localhost:27017");
         const db = client.db("Authentix");
         collectionQueue = db.collection("waitingRoom");
+        collectionUsers = db.collection("users");
     }
+}
+
+async function storeUserMapping(hashedNRIC, nric, name) {
+    await initDBIfNecessary();
+
+    const existing = await collectionUsers.findOne({ hashedNRIC });
+    if (existing) return;
+
+    await collectionUsers.insertOne({ hashedNRIC, nric, name });
+}
+
+async function findUserByHash(hashedNRIC) {
+    await initDBIfNecessary();
+    return await collectionUsers.findOne({ hashedNRIC });
 }
 
 // Adds a wallet address to the queue for a specific event
@@ -103,6 +119,8 @@ async function removeUserFromQueue(wallet, eventAddress) {
 }
 
 module.exports = {
+    storeUserMapping,
+    findUserByHash,
     addToQueue,
     getQueueList,
     advanceQueue,

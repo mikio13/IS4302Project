@@ -3,7 +3,7 @@ const UserRegistry_ABI = [
     "inputs": [
       {
         "internalType": "address",
-        "name": "platformAdmin",
+        "name": "platformOwner",
         "type": "address"
       }
     ],
