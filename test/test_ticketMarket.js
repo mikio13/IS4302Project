@@ -14,7 +14,7 @@ describe("TicketMarket Contract", function () {
         [owner, organiser, buyer1, buyer2, ...others] = await ethers.getSigners();
 
         const UserRegistry = await ethers.getContractFactory("UserRegistry");
-        userRegistry = await UserRegistry.deploy();
+        userRegistry = await UserRegistry.deploy(owner.address);
         await userRegistry.waitForDeployment();
 
         // Deploy TicketingPlatform with an initial commission rate of 5% (500 bps)

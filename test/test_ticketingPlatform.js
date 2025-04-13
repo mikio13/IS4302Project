@@ -15,7 +15,7 @@ describe("TicketingPlatform & UserRegistry Contracts", function () {
 
         // Deploy UserRegistry
         UserRegistry = await ethers.getContractFactory("UserRegistry");
-        userRegistry = await UserRegistry.deploy();
+        userRegistry = await UserRegistry.deploy(owner.address);
         await userRegistry.waitForDeployment();
 
         // Deploy TicketingPlatform, passing userRegistry + initial commissionRate

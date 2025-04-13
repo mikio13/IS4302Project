@@ -12,7 +12,7 @@ describe("Event, TicketingPlatform & UserRegistry Contracts", function () {
 
         // Deploy UserRegistry
         const UserRegistry = await ethers.getContractFactory("UserRegistry");
-        userRegistry = await UserRegistry.deploy();
+        userRegistry = await UserRegistry.deploy(owner.address);
         await userRegistry.waitForDeployment();
 
         // Deploy TicketingPlatform with an initial commission rate of 5% (500 bps)
