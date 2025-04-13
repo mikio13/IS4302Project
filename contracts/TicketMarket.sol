@@ -146,15 +146,19 @@ contract TicketMarket {
             "Ticket is not listed for resale on the market"
         );
 
-        uint256 totalPrice = listing.price +
-            (listing.price * commissionRate) /
-            10000;
+        uint256 commission = (listing.price * commissionRate) / 10000;
+        uint256 totalPrice = listing.price + commission;
         require(msg.value >= totalPrice, "Insufficient ETH");
 
         listing.active = false;
 
+        // Transfer resale price to the seller
         payable(listing.seller).transfer(listing.price);
 
+        // Transfer commission to the platform owner
+        payable(owner).transfer(commission);
+
+        // Refund any excess ETH to the buyer
         if (msg.value > totalPrice) {
             payable(msg.sender).transfer(msg.value - totalPrice);
         }
@@ -311,9 +315,11 @@ contract TicketMarket {
         uint256 offerVal = offered.getBasePrice(selected.offerTicketId);
 
         if (listVal > offerVal) {
+            // lister receives top-up
             payable(msg.sender).transfer(selected.topupAmount);
         } else if (offerVal > listVal) {
             require(msg.value >= selected.topupAmount, "Top-up underpaid");
+            // offerer receives top-up refund from lister
             payable(offerer).transfer(selected.topupAmount);
         }
 
@@ -345,18 +351,6 @@ contract TicketMarket {
         require(listingId < listings.length, "Invalid listing ID");
         require(listings[listingId].active, "Inactive listing");
         return listings[listingId].price;
-    }
-
-    // View accumulated commission held in contract
-    function checkCommission() public view returns (uint256) {
-        require(msg.sender == owner, "Not authorised");
-        return address(this).balance;
-    }
-
-    // Withdraw all ETH held by the contract (owner only)
-    function withdraw() public {
-        require(msg.sender == owner, "Not authorised");
-        payable(msg.sender).transfer(address(this).balance);
     }
 
     // Get total number of listings (including inactive)

@@ -416,4 +416,48 @@ describe("TicketMarket Contract", function () {
         expect(updatedOffers.length).to.equal(0);
     });
 
+    it("Platform and organiser receive correct payments from primary and resale", async function () {
+        // Set up fresh ticket for primary + resale purchase
+        const commissionRate = 500n;
+        const basePrice = ticketPrice;
+        const commission = (basePrice * commissionRate) / 10000n;
+        const totalPrice = basePrice + commission;
+
+        // Check balances before
+        const organiserBalanceBefore = BigInt((await ethers.provider.getBalance(organiser.address)).toString());
+        const platformBalanceBefore = BigInt((await ethers.provider.getBalance(owner.address)).toString());
+
+        // Fresh primary sale
+        await eventInstance.connect(buyer1).buyTicket(0, { value: totalPrice });
+
+        // Buyer1 lists for resale
+        const newTicketId = 5;
+        await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), newTicketId);
+        const resalePrice = basePrice;
+        await ticketMarket.connect(buyer1).listTicket(ticketInstance, newTicketId, resalePrice);
+
+        // Buyer2 buys resale ticket
+        await ticketMarket.connect(buyer2).buyTicket(4, { value: resalePrice + commission });
+
+        // Check balances after
+        const organiserBalanceAfter = BigInt((await ethers.provider.getBalance(organiser.address)).toString());
+        const platformBalanceAfter = BigInt((await ethers.provider.getBalance(owner.address)).toString());
+
+        const organiserDiff = organiserBalanceAfter - organiserBalanceBefore;
+        const platformDiff = platformBalanceAfter - platformBalanceBefore;
+        const totalExpectedCommission = commission * 2n;
+        const buffer = BigInt(ethers.parseEther("0.0005"));
+
+        // Debug logs
+        console.log("\n========== COMMISSION DEBUG ==========");
+        console.log("Organiser received:", ethers.formatEther(organiserDiff), "ETH");
+        console.log("Platform received:", ethers.formatEther(platformDiff), "ETH");
+        console.log("Expected Total Commission:", ethers.formatEther(totalExpectedCommission), "ETH");
+        console.log("======================================\n");
+
+        // Assertions
+        expect(organiserDiff).to.be.gte(basePrice);
+        expect(platformDiff).to.be.closeTo(totalExpectedCommission, buffer);
+    });
+
 });
