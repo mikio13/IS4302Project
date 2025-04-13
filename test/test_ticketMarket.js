@@ -31,6 +31,7 @@ describe("TicketMarket Contract", function () {
         eventInstance = await Event.deploy(
             organiser.address,
             await userRegistry.getAddress(),
+            owner.address,
             500,
             "Concert Event"
         );

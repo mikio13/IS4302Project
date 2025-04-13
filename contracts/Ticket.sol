@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// Import ERC721Enumerable which provides token enumeration functions.
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./UserRegistry.sol";
 
 contract Ticket is ERC721Enumerable {
-    uint256 public constant COMMISSION_DENOMINATOR = 10000; // Basis points
+    uint256 public constant COMMISSION_DENOMINATOR = 10000;
 
-    // Structure to store purchase and transfer data for each ticket.
     struct TicketData {
         address originalOwner;
         uint256 purchasePrice;
@@ -16,7 +14,8 @@ contract Ticket is ERC721Enumerable {
     }
 
     UserRegistry public immutable userRegistry;
-    address public immutable organiser; // The event organiser's address
+    address public immutable organiser;
+    address public immutable platformOwner;
     uint256 public immutable basePrice;
     uint256 public immutable maxSupply;
     uint256 public commissionRate;
@@ -25,12 +24,12 @@ contract Ticket is ERC721Enumerable {
     uint256 public totalSold;
     mapping(uint256 => TicketData) public ticketData;
 
-    // Events for logging ticket purchases and transfers.
     event TicketPurchased(
         uint256 indexed ticketId,
         address buyer,
         uint256 price
     );
+
     event TicketResold(
         uint256 indexed ticketId,
         address from,
@@ -45,30 +44,30 @@ contract Ticket is ERC721Enumerable {
         uint256 _basePrice,
         uint256 _commissionRate,
         address _userRegistry,
-        address _organiser
+        address _organiser,
+        address _platformOwner
     ) ERC721(_name, _symbol) {
         maxSupply = _maxSupply;
         basePrice = _basePrice;
         commissionRate = _commissionRate;
         userRegistry = UserRegistry(_userRegistry);
         organiser = _organiser;
+        platformOwner = _platformOwner;
     }
 
-    // Users buy tickets via the Event contract.
     function buyTicket(address buyer) external payable {
         require(totalSold < maxSupply, "Sold out");
 
-        // Calculate the total price including commission.
-        uint256 totalPrice = basePrice +
-            (basePrice * commissionRate) /
+        uint256 commission = (basePrice * commissionRate) /
             COMMISSION_DENOMINATOR;
+        uint256 totalPrice = basePrice + commission;
+
         require(msg.value >= totalPrice, "Insufficient funds");
 
         totalMinted++;
         totalSold++;
         uint256 ticketId = totalMinted;
 
-        // Mint the NFT to the buyer.
         _mint(buyer, ticketId);
 
         ticketData[ticketId] = TicketData({
@@ -77,7 +76,11 @@ contract Ticket is ERC721Enumerable {
             lastTransfer: block.timestamp
         });
 
-        // Refund any excess ETH.
+        // Payout
+        payable(organiser).transfer(basePrice);
+        payable(platformOwner).transfer(commission);
+
+        // Refund excess
         if (msg.value > totalPrice) {
             payable(buyer).transfer(msg.value - totalPrice);
         }
@@ -85,18 +88,13 @@ contract Ticket is ERC721Enumerable {
         emit TicketPurchased(ticketId, buyer, totalPrice);
     }
 
-    // Standard safeTransfer with an update of the last transfer timestamp.
     function safeTransferFromWith(
         address from,
         address to,
         uint256 ticketId
     ) external {
         require(ownerOf(ticketId) == from, "Not the ticket owner");
-
-        // Update the last transfer timestamp.
         ticketData[ticketId].lastTransfer = block.timestamp;
-
-        // Perform a standard safe transfer.
         _safeTransfer(from, to, ticketId, "");
         emit TicketResold(
             ticketId,
@@ -106,7 +104,6 @@ contract Ticket is ERC721Enumerable {
         );
     }
 
-    // Returns the purchase price (base price plus commission) of a ticket.
     function getBasePrice(uint256 ticketId) public view returns (uint256) {
         require(
             ticketId > 0 && ticketId <= totalMinted,
@@ -115,7 +112,6 @@ contract Ticket is ERC721Enumerable {
         return ticketData[ticketId].purchasePrice;
     }
 
-    // Returns the original owner (as recorded at minting) of a ticket.
     function getTicketOwner(uint256 ticketId) public view returns (address) {
         require(
             ticketId > 0 && ticketId <= totalMinted,
@@ -156,7 +152,7 @@ contract Ticket is ERC721Enumerable {
             data.purchasePrice,
             data.originalOwner,
             data.lastTransfer,
-            name() // Use the inherited name() function as the category name
+            name()
         );
     }
 }

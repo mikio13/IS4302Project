@@ -16,6 +16,9 @@ contract TicketingPlatform is AccessControl {
     // Commission rate applied to primary and secondary sales (in basis points)
     uint256 public commissionRate;
 
+    // Platform Owner address
+    address public immutable platformOwner;
+
     // Tracks all events created by a specific organiser
     mapping(address => address[]) private organiserToEvents;
 
@@ -31,6 +34,7 @@ contract TicketingPlatform is AccessControl {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         userRegistry = UserRegistry(_userRegistry);
         commissionRate = _commissionRate;
+        platformOwner = msg.sender;
     }
 
     // Called by the platform owner to approve new organisers.
@@ -48,6 +52,7 @@ contract TicketingPlatform is AccessControl {
         Event newEvent = new Event(
             msg.sender,
             address(userRegistry),
+            platformOwner,
             commissionRate,
             eventName
         );
