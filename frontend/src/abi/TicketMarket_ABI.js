@@ -285,7 +285,7 @@ const TicketMarket_ABI = [
     "outputs": [
       {
         "internalType": "bool",
-        "name": "exists",
+        "name": "",
         "type": "bool"
       }
     ],
@@ -409,7 +409,7 @@ const TicketMarket_ABI = [
         "type": "uint256"
       }
     ],
-    "name": "listTicketforTrade",
+    "name": "listTicketForTrade",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -479,6 +479,53 @@ const TicketMarket_ABI = [
     "name": "makeOffer",
     "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "offers",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "offerer",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "offerTicketId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "topupAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./UserRegistry.sol";
 import "./Ticket.sol";
 
+// This contract manages ticket resales and ticket-for-ticket trades between users.
+// It supports listing, buying, and exchanging tickets, while enforcing fair trade and resale rules.
 contract TicketMarket {
     struct Listing {
         address seller;
@@ -17,15 +19,16 @@ contract TicketMarket {
     struct Offer {
         address offerer;
         uint256 offerTicketId;
-        uint256 topupAmount; // amount that needs to be paid to balance the trade
+        uint256 topupAmount; // Optional ETH top-up for fair trade
     }
 
-    address owner = msg.sender;
+    address public immutable owner;
     UserRegistry public immutable userRegistry;
-    uint256 public commissionRate; // e.g. 500 = 5%
+    uint256 public commissionRate; // In basis points (e.g., 500 = 5%)
+
     Listing[] public listings;
-    mapping(uint256 => Offer[]) offers;
-    mapping(uint256 => mapping(address => uint256)) public topupAmounts; // listingId -> offerer -> topupAmount
+    mapping(uint256 => Offer[]) public offers;
+    mapping(uint256 => mapping(address => uint256)) public topupAmounts; // listingId → offerer → ETH sent
 
     event TicketListed(
         address indexed seller,
@@ -33,21 +36,18 @@ contract TicketMarket {
         uint256 ticketId,
         uint256 price
     );
-
     event TicketUnlisted(
         address indexed seller,
         address ticketContract,
         uint256 ticketId,
         uint256 price
     );
-
     event TicketSold(
         address indexed buyer,
         address ticketContract,
         uint256 ticketId,
         uint256 price
     );
-
     event OfferMade(
         address indexed offerer,
         address listedTicketContract,
@@ -56,7 +56,6 @@ contract TicketMarket {
         uint256 offerTicketId,
         uint256 topupAmount
     );
-
     event OfferAccepted(
         address indexed lister,
         address listedTicketContract,
@@ -65,19 +64,19 @@ contract TicketMarket {
         uint256 offerTicketId,
         uint256 topupAmount
     );
-
     event OfferRetracted(
         address indexed offerer,
         uint256 listedTicketId,
         uint256 refundAmount
     );
 
-    // The constructor sets the global UserRegistry and commission rate
     constructor(address _userRegistry, uint256 _commissionRate) {
         userRegistry = UserRegistry(_userRegistry);
         commissionRate = _commissionRate;
+        owner = msg.sender;
     }
 
+    // List a ticket for resale at a specified price (capped at original price)
     function listTicket(
         address ticketContract,
         uint256 ticketId,
@@ -85,15 +84,15 @@ contract TicketMarket {
     ) external {
         require(userRegistry.isRegistered(msg.sender), "Unregistered user");
         require(
-            msg.sender == IERC721(ticketContract).ownerOf(ticketId),
-            "Not the owner of the ticket"
+            ERC721Enumerable(ticketContract).ownerOf(ticketId) == msg.sender,
+            "Not ticket owner"
         );
+
         Ticket ticket = Ticket(ticketContract);
         uint256 originalPrice = ticket.getBasePrice(ticketId);
-        require(price <= originalPrice, "Price exceeds original ticket price");
+        require(price <= originalPrice, "Exceeds original ticket price");
 
-        // Transfer the NFT to the market contract or use an approval-based approach
-        IERC721(ticketContract).transferFrom(
+        ERC721Enumerable(ticketContract).transferFrom(
             msg.sender,
             address(this),
             ticketId
@@ -112,69 +111,59 @@ contract TicketMarket {
         emit TicketListed(msg.sender, ticketContract, ticketId, price);
     }
 
+    // Remove a listed ticket (by the seller)
     function unlistTicket(uint256 listingId) external {
         require(userRegistry.isRegistered(msg.sender), "Unregistered user");
-        require(listingId < listings.length, "Invalid listingId");
+        require(listingId < listings.length, "Invalid listing ID");
+
         Listing storage listing = listings[listingId];
-        require(msg.sender == listing.seller, "Not the owner of this ticket");
-        require(
-            listing.active,
-            "Ticket is not listed for resale on the market"
-        );
+        require(msg.sender == listing.seller, "Not ticket seller");
+        require(listing.active, "Listing inactive");
 
         listing.active = false;
 
-        IERC721(listing.ticketContract).transferFrom(
+        ERC721Enumerable(listing.ticketContract).transferFrom(
             address(this),
             msg.sender,
             listing.ticketId
         );
 
         emit TicketUnlisted(
-            listing.seller,
+            msg.sender,
             listing.ticketContract,
             listing.ticketId,
             listing.price
         );
     }
 
+    // Purchase a listed ticket (ETH must include price + commission)
     function buyTicket(uint256 listingId) external payable {
-        require(listingId < listings.length, "Invalid listingId");
+        require(listingId < listings.length, "Invalid listing ID");
+
         Listing storage listing = listings[listingId];
         require(
             listing.active,
             "Ticket is not listed for resale on the market"
         );
 
-        // Commission-based total
         uint256 totalPrice = listing.price +
             (listing.price * commissionRate) /
             10000;
-        require(msg.value >= totalPrice, "Insufficient funds");
+        require(msg.value >= totalPrice, "Insufficient ETH");
 
         listing.active = false;
 
-        // Pay seller
         payable(listing.seller).transfer(listing.price);
 
-        // Refund excess
         if (msg.value > totalPrice) {
             payable(msg.sender).transfer(msg.value - totalPrice);
         }
 
-        // Transfer NFT to buyer
-        IERC721(listing.ticketContract).transferFrom(
+        ERC721Enumerable(listing.ticketContract).transferFrom(
             address(this),
             msg.sender,
             listing.ticketId
         );
-
-        // Ticket(listing.ticketContract).safeTransferFromWithURI(
-        //     address(this),
-        //     msg.sender,
-        //     listing.ticketId,
-        //     newMetadataURI
-        // );
 
         emit TicketSold(
             msg.sender,
@@ -184,22 +173,21 @@ contract TicketMarket {
         );
     }
 
-    function listTicketforTrade(
+    // List a ticket for trade (no ETH price, trade only)
+    function listTicketForTrade(
         address ticketContract,
         uint256 ticketId
     ) external {
         require(userRegistry.isRegistered(msg.sender), "Unregistered user");
         require(
-            msg.sender == IERC721(ticketContract).ownerOf(ticketId),
-            "Not the owner of the ticket"
+            ERC721Enumerable(ticketContract).ownerOf(ticketId) == msg.sender,
+            "Not ticket owner"
         );
 
         Ticket ticket = Ticket(ticketContract);
-        uint256 originalPrice = ticket.getBasePrice(ticketId);
-        
+        uint256 basePrice = ticket.getBasePrice(ticketId);
 
-        // Transfer the NFT to the market contract or use an approval-based approach
-        IERC721(ticketContract).transferFrom(
+        ERC721Enumerable(ticketContract).transferFrom(
             msg.sender,
             address(this),
             ticketId
@@ -210,66 +198,52 @@ contract TicketMarket {
                 seller: msg.sender,
                 ticketContract: ticketContract,
                 ticketId: ticketId,
-                price: originalPrice,
+                price: basePrice,
                 active: true
             })
         );
 
-        emit TicketListed(msg.sender, ticketContract, ticketId, originalPrice);
+        emit TicketListed(msg.sender, ticketContract, ticketId, basePrice);
     }
 
-    function checkOfferExists(
-        uint256 listingId
-    ) public view returns (bool exists) {
-        uint256 numOffers = offers[listingId].length;
-        for (uint i = 0; i < numOffers; i++) {
-            if (offers[listingId][i].offerer == msg.sender) {
-                exists = true;
-                return exists;
-            }
+    // Check if sender has already made an offer for a specific listing
+    function checkOfferExists(uint256 listingId) public view returns (bool) {
+        Offer[] memory listingOffers = offers[listingId];
+        for (uint i = 0; i < listingOffers.length; i++) {
+            if (listingOffers[i].offerer == msg.sender) return true;
         }
+        return false;
     }
 
-    // offer value needs to match listing value > fair trade
-    // if the offerer has to pay > ticketMarket needs to hold the eth first > to be released when:
-    // 1. lister accepts offer > ticketMarket will pay the eth to the lister
-    // 2. offerer retracts offer > ticketMarket returns eth to the offerer
+    // Propose a ticket-for-ticket trade, possibly with a top-up
     function makeOffer(
         address listedTicketContract,
         address offeredTicketContract,
         uint256 listingId,
         uint256 offeredTicketId
     ) external payable {
-        require(listingId < listings.length, "Invalid listingId");
+        require(listingId < listings.length, "Invalid listing ID");
         Listing storage listing = listings[listingId];
-        require(
-            listing.active,
-            "Ticket is not listed for resale on the market"
-        );
-        Ticket listedTicket = Ticket(listedTicketContract);
-        Ticket offeredTicket = Ticket(offeredTicketContract);
+        require(listing.active, "Listing inactive");
 
-        uint256 listingValue = listedTicket.getBasePrice(listing.ticketId);
-        uint256 offeringValue = offeredTicket.getBasePrice(offeredTicketId);
+        Ticket listed = Ticket(listedTicketContract);
+        Ticket offered = Ticket(offeredTicketContract);
 
-        uint256 topupAmount = 0;
+        uint256 listValue = listed.getBasePrice(listing.ticketId);
+        uint256 offerValue = offered.getBasePrice(offeredTicketId);
 
-        // TO CHECK
-        // might need to double check for refunding of excess eth here
-        if (listingValue >= offeringValue) {
-            topupAmount = listingValue - offeringValue;
-            require(msg.value >= topupAmount, "Insufficient top-up amount");
+        uint256 topup = 0;
+        if (listValue > offerValue) {
+            topup = listValue - offerValue;
+            require(msg.value >= topup, "Top-up too low");
             topupAmounts[listingId][msg.sender] = msg.value;
-        } else {
-            topupAmount = offeringValue - listingValue;
-            topupAmounts[listingId][msg.sender] = 0; // No ETH needed
         }
 
         offers[listingId].push(
             Offer({
                 offerer: msg.sender,
                 offerTicketId: offeredTicketId,
-                topupAmount: topupAmount
+                topupAmount: topup
             })
         );
 
@@ -279,54 +253,39 @@ contract TicketMarket {
             offeredTicketContract,
             listing.ticketId,
             offeredTicketId,
-            topupAmount
+            topup
         );
     }
 
-    // eth will be refunded to the offerer
+    // Cancel an offer and get refund
     function retractOffer(uint256 listingId) external {
-        require(
-            checkOfferExists(listingId) == true,
-            "Offer has not been made for this listing"
-        );
-        Listing storage listing = listings[listingId];
+        require(checkOfferExists(listingId), "No active offer");
 
-        uint256 numOffers = offers[listingId].length;
-        for (uint i = 0; i < numOffers; i++) {
-            if (offers[listingId][i].offerer == msg.sender) {
-                offers[listingId][i] = offers[listingId][numOffers - 1];
-                offers[listingId].pop();
+        Offer[] storage offerList = offers[listingId];
+        for (uint i = 0; i < offerList.length; i++) {
+            if (offerList[i].offerer == msg.sender) {
+                offerList[i] = offerList[offerList.length - 1];
+                offerList.pop();
                 break;
             }
         }
 
-        uint256 refundAmount = topupAmounts[listingId][msg.sender];
-        topupAmounts[listingId][msg.sender] = 0; // clear the stored eth
+        uint256 refund = topupAmounts[listingId][msg.sender];
+        topupAmounts[listingId][msg.sender] = 0;
+        if (refund > 0) payable(msg.sender).transfer(refund);
 
-        if (refundAmount > 0) {
-            payable(msg.sender).transfer(refundAmount);
-        }
-
-        emit OfferRetracted(msg.sender, listing.ticketId, refundAmount);
+        emit OfferRetracted(msg.sender, listingId, refund);
     }
 
+    // View all offers made for a listing
     function checkOffers(
         uint256 listingId
     ) external view returns (Offer[] memory) {
-        require(
-            msg.sender == listings[listingId].seller,
-            "Not the lister of this ticket"
-        );
-        uint256 numOffers = offers[listingId].length;
-        Offer[] memory offerIds = new Offer[](numOffers);
-
-        for (uint i = 0; i < numOffers; i++) {
-            Offer storage offer = offers[listingId][i];
-            offerIds[i] = offer;
-        }
-        return offerIds;
+        require(msg.sender == listings[listingId].seller, "Not listing owner");
+        return offers[listingId];
     }
 
+    // Accept a trade offer (ticket-for-ticket, with optional ETH)
     function acceptOffer(
         uint256 listingId,
         address offerer,
@@ -334,47 +293,39 @@ contract TicketMarket {
         address offeredTicketContract
     ) external payable {
         Listing storage listing = listings[listingId];
-        require(listing.active, "Listing not active");
-        require(listing.seller == msg.sender, "Not the seller");
-        Offer memory selectedOffer;
+        require(listing.active, "Listing inactive");
+        require(listing.seller == msg.sender, "Not listing owner");
 
-        uint256 numOffer = offers[listingId].length;
-        for (uint i = 0; i < numOffer; i++) {
+        Offer memory selected;
+        for (uint i = 0; i < offers[listingId].length; i++) {
             if (offers[listingId][i].offerer == offerer) {
-                selectedOffer = offers[listingId][i];
+                selected = offers[listingId][i];
                 break;
             }
         }
-        Ticket listedTicket = Ticket(listedTicketContract);
-        Ticket offeredTicket = Ticket(offeredTicketContract);
 
-        uint256 topupAmount = selectedOffer.topupAmount;
-        uint256 listedTicketValue = listedTicket.getBasePrice(listing.ticketId);
-        uint256 offeredTicketValue = offeredTicket.getBasePrice(selectedOffer.offerTicketId);
+        Ticket listed = Ticket(listedTicketContract);
+        Ticket offered = Ticket(offeredTicketContract);
 
-        if (listedTicketValue > offeredTicketValue) {
-            // Offerer must pay
-            // contract releases payment to the lister
-            payable(listing.seller).transfer(topupAmount);
-        } else if (offeredTicketValue > listedTicketValue) {
-            // Lister must pay
-            // lister needs to put a msg.value > 0
-            require(msg.value >= topupAmount, "Insufficient top-up amount");
-            payable(selectedOffer.offerer).transfer(topupAmount);
-        } else {
-            require(msg.value == 0, "No payment required");
+        uint256 listVal = listed.getBasePrice(listing.ticketId);
+        uint256 offerVal = offered.getBasePrice(selected.offerTicketId);
+
+        if (listVal > offerVal) {
+            payable(msg.sender).transfer(selected.topupAmount);
+        } else if (offerVal > listVal) {
+            require(msg.value >= selected.topupAmount, "Top-up underpaid");
+            payable(offerer).transfer(selected.topupAmount);
         }
 
-        // Transfer tikcets
-        IERC721(listedTicketContract).transferFrom(
+        ERC721Enumerable(listedTicketContract).transferFrom(
             address(this),
-            selectedOffer.offerer,
+            offerer,
             listing.ticketId
         );
-        IERC721(offeredTicketContract).transferFrom(
-            selectedOffer.offerer,
-            listing.seller,
-            selectedOffer.offerTicketId
+        ERC721Enumerable(offeredTicketContract).transferFrom(
+            offerer,
+            msg.sender,
+            selected.offerTicketId
         );
 
         listing.active = false;
@@ -384,28 +335,31 @@ contract TicketMarket {
             listedTicketContract,
             offeredTicketContract,
             listing.ticketId,
-            selectedOffer.offerTicketId,
-            topupAmount
+            selected.offerTicketId,
+            selected.topupAmount
         );
     }
 
+    // View current price for a listing
     function checkPrice(uint256 listingId) external view returns (uint256) {
-        require(listingId < listings.length, "Invalid listingId");
-        require(listings[listingId].active, "Listing is not active");
+        require(listingId < listings.length, "Invalid listing ID");
+        require(listings[listingId].active, "Inactive listing");
         return listings[listingId].price;
     }
 
+    // View accumulated commission held in contract
     function checkCommission() public view returns (uint256) {
-        require(msg.sender == owner, "Sorry, you are not allowed to do that");
+        require(msg.sender == owner, "Not authorised");
         return address(this).balance;
     }
 
+    // Withdraw all ETH held by the contract (owner only)
     function withdraw() public {
-        require(msg.sender == owner, "Sorry, you are not allowed to do that");
+        require(msg.sender == owner, "Not authorised");
         payable(msg.sender).transfer(address(this).balance);
     }
 
-    // this includes inactive listings as well
+    // Get total number of listings (including inactive)
     function getNumberOfListings() external view returns (uint256) {
         return listings.length;
     }

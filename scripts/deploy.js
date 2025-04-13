@@ -7,9 +7,9 @@ async function main() {
     console.log("Event Organiser:", eventOrganiser.address);
     console.log("Buyer:", buyer.address);
 
-    // 1. Deploy UserRegistry
+    // 1. Deploy UserRegistry with platformOwner as admin
     const UserRegistryFactory = await hre.ethers.getContractFactory("UserRegistry", platformOwner);
-    const userRegistry = await UserRegistryFactory.deploy();
+    const userRegistry = await UserRegistryFactory.deploy(platformOwner.address); // <-- Pass admin here
     await userRegistry.waitForDeployment();
     const userRegistryAddress = await userRegistry.getAddress();
     console.log("UserRegistry deployed to:", userRegistryAddress);

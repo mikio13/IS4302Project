@@ -26,10 +26,10 @@ const EventDetailsPage = ({ account }) => {
     }, [eventAddress]);
 
     // Called when user clicks "Join Waiting Room"
-    // We use /queue/demo-join to insert 3 fake users + real user
+    // We use /api/queue/demo-join to insert 3 fake users + real user
     const handleJoinQueue = async () => {
         try {
-            const res = await fetch("http://localhost:3000/queue/demo-join", {
+            const res = await fetch("http://localhost:3000/api/queue/demo-join", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ wallet: account, eventAddress }),

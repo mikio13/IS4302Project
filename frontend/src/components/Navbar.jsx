@@ -2,23 +2,30 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getUserDetails } from "../utils/contractServices";
 
-// This navbar will have links to the default dashboard page, tickets and events page. It will also show the user's info
 export default function Navbar({ account }) {
-    const [user, setUser] = useState({ name: "", hashedNRIC: "" });
+    const [user, setUser] = useState({ name: "", nric: "" });
 
     useEffect(() => {
-        // Fetch the user's name and hashed NRIC from the blockchain
-        const fetchUserDetails = async () => {
+        const fetchUserData = async () => {
             try {
+                // 1. Get hashed NRIC from smart contract
                 const details = await getUserDetails(account);
-                setUser({ name: details.name, hashedNRIC: details.hashedNRIC });
+                const hashedNRIC = details.hashedNRIC;
+
+                // 2. Call Express backend to resolve hashedNRIC to real name + nric
+                const response = await fetch(`http://localhost:3000/api/users/${hashedNRIC}`);
+                if (!response.ok) {
+                    throw new Error("Backend user fetch failed");
+                }
+
+                const userData = await response.json();
+                setUser({ name: userData.name, nric: userData.nric });
             } catch (err) {
-                console.error("Failed to fetch user details:", err);
+                console.error("Failed to fetch full user details:", err);
             }
         };
 
-        // Only fetch details if wallet is connected
-        if (account) fetchUserDetails();
+        if (account) fetchUserData();
     }, [account]);
 
     return (
@@ -33,7 +40,7 @@ export default function Navbar({ account }) {
             </div>
             <div className="nav-right">
                 <span>
-                    {user.name} ({user.hashedNRIC})
+                    {user.name} ({user.nric})
                 </span>
             </div>
         </header>

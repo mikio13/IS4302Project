@@ -23,7 +23,7 @@ const WaitingRoom = ({ account }) => {
     useEffect(() => {
         const fetchQueue = async () => {
             try {
-                const res = await fetch(`http://localhost:3000/queue?eventAddress=${eventAddress}`);
+                const res = await fetch(`http://localhost:3000/api/queue?eventAddress=${eventAddress}`);
                 const queue = await res.json();
                 setQueueList(queue);
 
@@ -66,7 +66,7 @@ const WaitingRoom = ({ account }) => {
 
     // Advance queue manually during demo
     const advanceQueue = async () => {
-        await fetch("http://localhost:3000/queue/demo-advance", {
+        await fetch("http://localhost:3000/api/queue/demo-advance", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ eventAddress }),
@@ -82,7 +82,7 @@ const WaitingRoom = ({ account }) => {
 
             await buyTicket(eventAddress, selectedCategoryIndex, ethPrice);
 
-            await fetch("http://localhost:3000/queue/complete", {
+            await fetch("http://localhost:3000/api/queue/complete", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ wallet: account, eventAddress }),

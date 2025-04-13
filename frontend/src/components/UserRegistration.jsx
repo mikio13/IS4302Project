@@ -1,26 +1,40 @@
 import { useState } from "react";
 import { registerUser } from "../utils/contractServices";
+import { keccak256, toUtf8Bytes } from "ethers"; // Add this
 
-// Displays the registration form for new users
 export default function UserRegistration({ onRegistered }) {
     const [name, setName] = useState("");
     const [nric, setNric] = useState("");
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
 
-    // Handles the form submission and registers the user on-chain
     const handleSubmit = async (event) => {
         event.preventDefault();
         setLoading(true);
         setMessage("");
 
         try {
-            // This sends a transaction to UserRegistry.sol to register the user
-            await registerUser(nric, name); // Storing NRIC in plaintext for demo purposes
+            // 1. Hash the NRIC client-side
+            const hashedNRIC = keccak256(toUtf8Bytes(nric));
+
+            // 2. Register on-chain with hashed NRIC
+            await registerUser(hashedNRIC, name);
+
+            // 3. Also send the plaintext mapping to your Express backend
+            await fetch("http://localhost:3000/api/users/store", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    hashedNRIC,
+                    nric,
+                    name
+                })
+            });
+
             setMessage("✅ Registration successful!");
             setName("");
             setNric("");
-            onRegistered(); // Notifies App.jsx to proceed with loading the UserDashboard page
+            onRegistered();
         } catch (error) {
             console.error("Registration error:", error);
             if (error.message.includes("Already registered")) {
@@ -30,7 +44,6 @@ export default function UserRegistration({ onRegistered }) {
             }
         } finally {
             setLoading(false);
-            // Auto-hide message after 4 seconds
             setTimeout(() => setMessage(""), 4000);
         }
     };
@@ -39,7 +52,6 @@ export default function UserRegistration({ onRegistered }) {
         <div className="form-card">
             <h2>Please Register</h2>
             <form onSubmit={handleSubmit}>
-                {/* Input field for user's name */}
                 <input
                     type="text"
                     value={name}
@@ -47,8 +59,6 @@ export default function UserRegistration({ onRegistered }) {
                     onChange={(e) => setName(e.target.value)}
                     required
                 />
-
-                {/* Input field for user's NRIC */}
                 <input
                     type="text"
                     value={nric}
@@ -56,13 +66,9 @@ export default function UserRegistration({ onRegistered }) {
                     onChange={(e) => setNric(e.target.value)}
                     required
                 />
-
-                {/* Submit button */}
                 <button type="submit" disabled={loading}>
                     {loading ? "Registering..." : "Register"}
                 </button>
-
-                {/* Display success or error message */}
                 {message && <p className="message">{message}</p>}
             </form>
         </div>
