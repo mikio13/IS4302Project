@@ -132,5 +132,40 @@ describe("Event, TicketingPlatform & UserRegistry Contracts", function () {
         expect(ownerOfTicket1).to.equal(buyer.address);
     });
 
+    it("Event organiser and platform owner receive correct payments", async function () {
+        // Base setup again
+        const basePrice = ethers.parseEther("0.05");
+        const commissionRate = 500n; // 5%
+        const commission = (basePrice * commissionRate) / 10000n;
+        const totalPrice = basePrice + commission;
+
+        // Get balances before
+        const organiserBefore = BigInt(await ethers.provider.getBalance(organiser.address));
+        const platformOwnerBefore = BigInt(await ethers.provider.getBalance(owner.address));
+
+        // Have another registered buyer buy a ticket
+        const anotherBuyer = others[0];
+        await userRegistry.connect(anotherBuyer).registerUser("hashedNRIC", "Another Buyer");
+
+        const buyTx = await eventInstance.connect(anotherBuyer).buyTicket(0, {
+            value: totalPrice,
+        });
+        await buyTx.wait();
+
+        // Get balances after
+        const organiserAfter = BigInt(await ethers.provider.getBalance(organiser.address));
+        const platformOwnerAfter = BigInt(await ethers.provider.getBalance(owner.address));
+
+        // Calculate diffs
+        const organiserReceived = organiserAfter - organiserBefore;
+        const platformOwnerReceived = platformOwnerAfter - platformOwnerBefore;
+
+        // Check that organiser got at least basePrice
+        expect(organiserReceived).to.be.gte(basePrice);
+
+        // Check that platform owner got at least commission
+        expect(platformOwnerReceived).to.be.gte(commission);
+    });
+
 
 });
