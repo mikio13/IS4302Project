@@ -50,6 +50,7 @@ describe("TicketMarket Contract", function () {
         ticketInstance = await ethers.getContractAt("Ticket", ticketCategoryAddress);
     });
 
+    // Test Case 1
     it("Owner approves an organiser & organiser registers in UserRegistry", async function () {
         // Correctly called by the owner
         const tx = await ticketingPlatform.connect(owner).approveOrganiser(organiser.address);
@@ -61,6 +62,7 @@ describe("TicketMarket Contract", function () {
             .withArgs(organiser.address);
     });
 
+    // Test Case 2
     it("Organiser creates an Event via TicketingPlatform", async function () {
         // Create a new event
         const tx = await ticketingPlatform.connect(organiser).createEvent("MyConcert");
@@ -79,6 +81,7 @@ describe("TicketMarket Contract", function () {
         eventInstance = await ethers.getContractAt("Event", eventAddress);
     });
 
+    // Test Case 3
     it("Organiser creates a ticket category via the Event contract", async function () {
         // Create a ticket category (instance of Ticket contract) with totalSupply = 100, basePrice = 0.05 ETH
         const tx = await eventInstance
@@ -86,7 +89,7 @@ describe("TicketMarket Contract", function () {
             .createTicketCategory("VIP", "VIPSYM", 100, ethers.parseEther("0.05"));
         const receipt = await tx.wait();
 
-        // Confirm TicketCategoryCreated event
+        // Ensure attributes are correct
         const categoryLog = receipt.logs.find((log) => log.fragment?.name === "TicketCategoryCreated");
         ticketCategoryAddress = categoryLog.args[0];  // or .args.ticketContract
         const categoryName = categoryLog.args[1];
@@ -98,6 +101,7 @@ describe("TicketMarket Contract", function () {
         ticketInstance = await ethers.getContractAt("Ticket", ticketCategoryAddress);
     });
 
+    // Test Case 4
     it("Organiser creates another ticket category via the Event contract (Normal category)", async function () {
         const tx = await eventInstance
             .connect(organiser)
@@ -116,8 +120,8 @@ describe("TicketMarket Contract", function () {
         normalTicketInstance = await ethers.getContractAt("Ticket", normalCategoryAddress);
     });
 
-
-    it("Buyer 1 buys a ticket", async function () {
+    // Test Case 5
+    it("Buyer 1 buys a ticket from an Event", async function () {
         // Register the buyer
         const regTx = await userRegistry
             .connect(buyer1)
@@ -165,7 +169,8 @@ describe("TicketMarket Contract", function () {
         expect(ownerOfTicket1).to.equal(buyer1.address);
     });
 
-    it("Buyer 1 lists their ticket on the resale market and Buyer 2 purchases it successfully", async function () {
+    // Test Case 6
+    it("Buyer 1 tries to lists their ticket on the resale market over the price cap", async function () {
         // Register buyer2
         const regTx = await userRegistry
             .connect(buyer2)
@@ -173,20 +178,28 @@ describe("TicketMarket Contract", function () {
         await regTx.wait();
         expect(await userRegistry.isRegistered(buyer2.address)).to.equal(true);
 
-        // const originalPrice = ethers.parseEther("0.06");
+        // approve the ticket bought in the prev test case
+        await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), ticketId);
 
-        // const buyTx = await eventInstance
-        //     .connect(buyer1)
-        //     .buyTicket(0, { value: originalPrice });
-        // await buyTx.wait();
+        const resalePrice = ethers.parseEther("0.10");
 
-        // expect(await ticketInstance.ownerOf(ticketId)).to.equal(buyer1.address);
+        // ticket listing fails due to overpricing
+        await expect(
+            ticketMarket.connect(buyer1).listTicket(ticketInstance, ticketId, resalePrice)
+        ).to.be.revertedWith("Exceeds original ticket price");
 
+        // check that buyer 1 still holds the ticket ownership
+        expect(await ticketInstance.ownerOf(ticketId)).to.equal(buyer1.address);
+    });
+
+    // Test Case 7
+    it("Buyer 1 lists their ticket on the resale market and Buyer 2 purchases it successfully", async function () {
         // approve the ticket bought in the prev test case
         await ticketInstance.connect(buyer1).approve(await ticketMarket.getAddress(), ticketId);
 
         const resalePrice = ethers.parseEther("0.05");
 
+        // buyer 1 attempts lists the ticket
         const tx = await ticketMarket.connect(buyer1).listTicket(ticketInstance, ticketId, resalePrice);
         await tx.wait();
 
@@ -201,10 +214,11 @@ describe("TicketMarket Contract", function () {
 
         await ticketMarket.connect(buyer2).buyTicket(0, { value: purchasePrice });
 
+        // check that ticket is now owned by buyer 2
         expect(await ticketInstance.ownerOf(ticketId)).to.equal(buyer2.address);
-
     });
 
+    // Test Case 8
     it("Buyer 1 unlists ticket, Buyer 2 cannot buy unlisted ticket", async function () {
         //buyer 1 to buy another VIP ticket
         const originalPrice = ethers.parseEther("0.06");
@@ -250,7 +264,8 @@ describe("TicketMarket Contract", function () {
 
     });
 
-    it("Buyer 1 lists ticket for trade", async function () {
+    // Test Case 9
+    it("Buyer 1 lists ticket for trade, Buyer 2 makes a trade offer and Buyer 1 accepts trade", async function () {
         const basePrice = ticketPrice
         const commissionRate = 500n;
         const finalPrice = basePrice + (basePrice * commissionRate) / 10000n
@@ -267,7 +282,7 @@ describe("TicketMarket Contract", function () {
         const tx = await ticketMarket.connect(buyer1).listTicketForTrade(ticketInstance, 3);
         await tx.wait();
 
-        // check ownership transfer to ticket 
+        // check ownership transfer to ticketmarket
         await expect(tx)
             .to.emit(ticketMarket, "TicketListed")
             .withArgs(buyer1.address, ticketInstance, 3, finalPrice);
@@ -290,7 +305,7 @@ describe("TicketMarket Contract", function () {
         // to account for commission fee
         const topupAmount = ethers.parseEther("0.021");
 
-        // checking for buyer 2's balance needs to be done before Offer is made
+        // check for buyer 2's balance needs to be done before Offer is made
         const listersBalanceBeforeTrade = await ethers.provider.getBalance(buyer1.address);
         const listersBalanceBefore = BigInt(listersBalanceBeforeTrade.toString());
 
@@ -298,6 +313,7 @@ describe("TicketMarket Contract", function () {
         const tradersBalanceBefore = BigInt(tradersBalanceBeforeTrade.toString());
 
         // buyer 2 makes a trade offer
+        // buyer 2 to topup difference in ticket value (Offering a Normal ticket for the listed VIP ticket)
         const tx2 = await ticketMarket.connect(buyer2).makeOffer(
             ticketInstance, normalTicketInstance, 2, 1, { value: topupAmount });
         await tx2.wait();
@@ -314,13 +330,13 @@ describe("TicketMarket Contract", function () {
             .to.emit(ticketMarket, "OfferAccepted")
             .withArgs(buyer1.address, ticketInstance, normalTicketInstance, 3, 1, topupAmount);
 
-        // check ticket owners to verify trade
+        // check ticket owners to verify that trade is sucessful
         // buyer 2 is the new owner of the VIP ticket
         // buyer 1 is the new owner of the Normal ticket
         expect(await ticketInstance.ownerOf(3)).to.equal(buyer2.address);
         expect(await normalTicketInstance.ownerOf(1)).to.equal(buyer1.address);
 
-        // check balance
+        // check balance of buyer 1 and 2
         const listersBalanceAfterTrade = await ethers.provider.getBalance(buyer1.address);
         const listersBalanceAfter = BigInt(listersBalanceAfterTrade.toString());
 
@@ -338,9 +354,8 @@ describe("TicketMarket Contract", function () {
         expect((await ticketMarket.listings(2)).active).to.be.false;
     });
 
-    // maybe can add a retract offer test case
-    // check if balance is refunded
-    it("Buyer 2 retracts offer", async function () {
+    // Test Case 10
+    it("Buyer 1 lists ticket for trade, Buyer 2 makes and retracts offer, and payment is refunded", async function () {
         const basePrice = ticketPrice
         const commissionRate = 500n;
         const finalPrice = basePrice + (basePrice * commissionRate) / 10000n
@@ -416,7 +431,8 @@ describe("TicketMarket Contract", function () {
         expect(updatedOffers.length).to.equal(0);
     });
 
-    it("Platform and organiser receive correct payments from primary and resale", async function () {
+    // Test Case 11
+    it("Platform and organiser receive correct payments from primary sale and resale", async function () {
         // Set up fresh ticket for primary + resale purchase
         const commissionRate = 500n;
         const basePrice = ticketPrice;
@@ -449,7 +465,7 @@ describe("TicketMarket Contract", function () {
         const buffer = BigInt(ethers.parseEther("0.0005"));
 
         // Debug logs
-        console.log("\n========== COMMISSION DEBUG ==========");
+        console.log("\n========== COMMISSION CHECK ==========");
         console.log("Organiser received:", ethers.formatEther(organiserDiff), "ETH");
         console.log("Platform received:", ethers.formatEther(platformDiff), "ETH");
         console.log("Expected Total Commission:", ethers.formatEther(totalExpectedCommission), "ETH");
