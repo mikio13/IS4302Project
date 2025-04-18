@@ -1,6 +1,6 @@
 const { storeUserMapping, findUserByHash } = require("../lib/database");
 
-const storeUser = async (req, res) => {
+const createUser = async (req, res) => {
     const { hashedNRIC, nric, name } = req.body;
 
     if (!hashedNRIC || !nric || !name) {
@@ -35,6 +35,6 @@ const getUserByHashedNRIC = async (req, res) => {
 };
 
 module.exports = {
-    storeUser,
+    createUser,
     getUserByHashedNRIC
 };

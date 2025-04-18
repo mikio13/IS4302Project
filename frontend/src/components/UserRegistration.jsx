@@ -21,7 +21,7 @@ export default function UserRegistration({ onRegistered }) {
             await registerUser(hashedNRIC, name);
 
             // 3. Also send the plaintext mapping to your Express backend
-            await fetch("http://localhost:3000/api/users/store", {
+            await fetch("http://localhost:3000/api/users", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
