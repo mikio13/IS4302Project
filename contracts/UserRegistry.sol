@@ -58,12 +58,14 @@ contract UserRegistry is AccessControl {
         return (u.hashedNRIC, u.name, true);
     }
 
+    //Not used during the demo but useful to have
     function deregisterUser() external {
         require(_users[msg.sender].registered, "Not registered");
         delete _users[msg.sender];
         emit UserDeregistered(msg.sender);
     }
 
+    // Allows an admin to update a user's details after off-chain verification. Not used in the demo.
     function adminUpdateUser(
         address user,
         string calldata newHashedNRIC,
