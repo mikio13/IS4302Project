@@ -308,6 +308,19 @@ const TicketingPlatform_ABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "platformOwner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "bytes32",

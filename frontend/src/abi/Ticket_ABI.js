@@ -35,6 +35,11 @@ const Ticket_ABI = [
         "internalType": "address",
         "name": "_organiser",
         "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_platformOwner",
+        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
@@ -566,6 +571,19 @@ const Ticket_ABI = [
       }
     ],
     "name": "ownerOf",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "platformOwner",
     "outputs": [
       {
         "internalType": "address",

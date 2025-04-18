@@ -12,6 +12,11 @@ const Event_ABI = [
         "type": "address"
       },
       {
+        "internalType": "address",
+        "name": "_platformOwner",
+        "type": "address"
+      },
+      {
         "internalType": "uint256",
         "name": "_commissionRate",
         "type": "uint256"
@@ -127,6 +132,19 @@ const Event_ABI = [
   {
     "inputs": [],
     "name": "organiser",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "platformOwner",
     "outputs": [
       {
         "internalType": "address",

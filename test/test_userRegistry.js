@@ -102,4 +102,40 @@ describe("UserRegistry Contract", function () {
             userRegistry.connect(unregistered).getUserDetails(unregistered.address)
         ).to.be.revertedWith("Not registered");
     });
+
+    // Admin can update user details, and user can deregister
+    it("Should allow admin to update user details, and allow user to deregister", async function () {
+        // Admin updates account2's name and NRIC
+        const txUpdate = await userRegistry
+            .connect(account1)
+            .adminUpdateUser(account2.address, "updatedHashed", "NewName");
+
+        await expect(txUpdate)
+            .to.emit(userRegistry, "UserUpdated")
+            .withArgs(account2.address, "updatedHashed", "NewName");
+
+        // Confirm updated data
+        const [updatedNRIC, updatedName, status] = await userRegistry
+            .connect(account1)
+            .getUserDetails(account2.address);
+
+        expect(updatedNRIC).to.equal("updatedHashed");
+        expect(updatedName).to.equal("NewName");
+        expect(status).to.equal(true);
+
+        // Now account2 deregisters themselves
+        const txDeregister = await userRegistry.connect(account2).deregisterUser();
+
+        await expect(txDeregister)
+            .to.emit(userRegistry, "UserDeregistered")
+            .withArgs(account2.address);
+
+        // isRegistered should now return false
+        expect(await userRegistry.isRegistered(account2.address)).to.equal(false);
+
+        // getUserDetails should now revert
+        await expect(
+            userRegistry.connect(account2).getUserDetails(account2.address)
+        ).to.be.revertedWith("Not registered");
+    });
 });

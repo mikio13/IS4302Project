@@ -15,6 +15,12 @@ contract UserRegistry is AccessControl {
     bytes32 public constant ADMIN_ROLE = DEFAULT_ADMIN_ROLE;
 
     event UserRegistered(address indexed user, string hashedNRIC, string name);
+    event UserDeregistered(address indexed user);
+    event UserUpdated(
+        address indexed user,
+        string newHashedNRIC,
+        string newName
+    );
 
     constructor(address platformOwner) {
         _grantRole(ADMIN_ROLE, platformOwner);
@@ -39,13 +45,10 @@ contract UserRegistry is AccessControl {
         return _users[user].registered;
     }
 
-    // Now only the user themselves or an ADMIN can fetch details
     function getUserDetails(
         address user
     ) external view returns (string memory, string memory, bool) {
         require(_users[user].registered, "Not registered");
-
-        // Only the user or someone with ADMIN_ROLE can call this
         require(
             msg.sender == user || hasRole(ADMIN_ROLE, msg.sender),
             "Not authorised"
@@ -53,5 +56,26 @@ contract UserRegistry is AccessControl {
 
         User memory u = _users[user];
         return (u.hashedNRIC, u.name, true);
+    }
+
+    //Not used during the demo but useful to have
+    function deregisterUser() external {
+        require(_users[msg.sender].registered, "Not registered");
+        delete _users[msg.sender];
+        emit UserDeregistered(msg.sender);
+    }
+
+    // Allows an admin to update a user's details after off-chain verification. Not used in the demo.
+    function adminUpdateUser(
+        address user,
+        string calldata newHashedNRIC,
+        string calldata newName
+    ) external onlyRole(ADMIN_ROLE) {
+        require(_users[user].registered, "User not registered");
+
+        _users[user].hashedNRIC = newHashedNRIC;
+        _users[user].name = newName;
+
+        emit UserUpdated(user, newHashedNRIC, newName);
     }
 }
