@@ -11,37 +11,8 @@ import { encode as base64urlEncode } from "js-base64";
 
 export default function TicketsPage({ account }) {
     const [tickets, setTickets] = useState([]);
-    const [userDetails, setUserDetails] = useState(null); // Real name + NRIC from backend
     const [qrData, setQrData] = useState("");
     const [showQR, setShowQR] = useState(false);
-
-    // Fetch hashedNRIC from chain and resolve actual user identity from backend
-    useEffect(() => {
-        const fetchUserDetails = async () => {
-            if (!account) return;
-            try {
-                // Step 1: Get hashedNRIC from blockchain
-                const { hashedNRIC } = await getUserDetails(account);
-
-                // Step 2: Query backend to resolve hashedNRIC
-                const response = await fetch(`http://localhost:3000/api/users/${hashedNRIC}`);
-                if (!response.ok) {
-                    throw new Error("Failed to fetch user from backend");
-                }
-
-                const userData = await response.json();
-                setUserDetails({
-                    name: userData.name,
-                    nric: userData.nric,
-                    hashedNRIC
-                });
-            } catch (error) {
-                console.error("Error fetching user details:", error);
-            }
-        };
-
-        fetchUserDetails();
-    }, [account]);
 
     // Fetch all tickets
     useEffect(() => {
@@ -82,26 +53,46 @@ export default function TicketsPage({ account }) {
         fetchTickets();
     }, [account]);
 
-    // QR logic uses real identity now
-    const handleViewQR = (ticket) => {
-        if (!userDetails || !ticket.eventName) {
-            alert("User or event info not available.");
+    const handleViewQR = async (ticket) => {
+        if (!account || !ticket.eventName) {
+            alert("Missing wallet or ticket data.");
             return;
         }
 
-        const payload = {
-            ticketId: ticket.id,
-            ticketContract: ticket.ticketContract,
-            event: ticket.eventName,
-            category: ticket.categoryName,
-            name: userDetails.name,
-            nric: userDetails.nric
-        };
+        try {
+            const details = await getUserDetails(account);
+            const hashedNRIC = details.hashedNRIC;
+            console.log("Retrieved hashedNRIC:", hashedNRIC);
 
-        const encoded = base64urlEncode(JSON.stringify(payload));
-        const qrUrl = `${window.location.origin}/verify?data=${encoded}`;
-        setQrData(qrUrl);
-        setShowQR(true);
+            const response = await fetch(`http://localhost:3000/api/users/${hashedNRIC}`);
+            console.log("Backend response status:", response.status);
+
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error("Backend response error text:", errText);
+                throw new Error("Failed to fetch user from backend");
+            }
+
+            const userData = await response.json();
+            console.log("Fetched userData:", userData);
+
+            const payload = {
+                ticketId: ticket.id,
+                ticketContract: ticket.ticketContract,
+                event: ticket.eventName,
+                category: ticket.categoryName,
+                name: userData.name,
+                nric: userData.nric
+            };
+
+            const encoded = base64urlEncode(JSON.stringify(payload));
+            const qrUrl = `${window.location.origin}/verify?data=${encoded}`;
+            setQrData(qrUrl);
+            setShowQR(true);
+        } catch (error) {
+            console.error("Error generating QR code:", error);
+            alert("Could not generate QR – user not found.");
+        }
     };
 
     return (

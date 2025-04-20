@@ -16,7 +16,7 @@ export default function UserRegistration({ onRegistered }) {
         try {
             // 1. Hash the NRIC client-side
             const hashedNRIC = keccak256(toUtf8Bytes(nric));
-
+            console.log("Hashed NRIC:", hashedNRIC);
             // 2. Register on-chain with hashed NRIC
             await registerUser(hashedNRIC, name);
 
