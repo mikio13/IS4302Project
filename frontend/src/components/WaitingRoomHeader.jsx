@@ -1,6 +1,4 @@
-import React from "react";
-
-const WaitingRoomHeader = () => { //Renders the event image and event metadata on the Waiting Room page.
+const WaitingRoomHeader = ({ eventName }) => {
     return (
         <div className="masthead">
             <div className="masthead-bg" />
@@ -12,11 +10,10 @@ const WaitingRoomHeader = () => { //Renders the event image and event metadata o
                         <span className="sep"> / </span>
                         <span>Singapore Indoor Stadium</span>
                     </p>
-                    <h1>TAEYEON CONCERT - The TENSE in SINGAPORE</h1>
+                    <h1>{eventName}</h1>
                 </div>
             </div>
         </div>
     );
 };
-
 export default WaitingRoomHeader;
