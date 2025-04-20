@@ -10,11 +10,9 @@
 
 4. `npx hardhat compile` (Compiles all the Solidity smart contracts in the `contracts/` folder.)
 
-5. `npx hardhat run scripts/deploy.js --network localhost` (Deploys the contracts to the local Hardhat blockchain, we need to run this for the frontend demo to work)
+5. `npx hardhat test` (Runs all the test files inside `IS4302Project/test/`.)
 
-6. `npx hardhat test` (Runs all the test files inside `IS4302Project/test/`.)
-
-7. All of the sections after this are just for the frontend demo, which is focused on showcasing the QR code feature. You can still use all of the key features just from the Solidity smart contracts.
+6. All of the sections after this are just for the frontend demo, which is focused on showcasing the QR code feature. You can still use all of the key features just from the Solidity smart contracts.
 
 ## 🦊 Steps to Set Up MetaMask for the Demo
 
@@ -75,10 +73,10 @@
    
    `npx hardhat run scripts/deploy.js --network localhost` (Deploys all contracts to the local Hardhat blockchain & sets them up for the demo)
 
-10. `cd frontend`
+9. `cd frontend`
 
-11. `npm install` (Installs all frontend dependencies)
+10. `npm install` (Installs all frontend dependencies)
 
-12. `npm run dev` (Starts the React + Vite frontend)
+11. `npm run dev` (Starts the React + Vite frontend)
 
-13. `http://localhost:5173/` (Open your browser and navigate to this url)
+12. `http://localhost:5173/` (Open your browser and navigate to this url)
