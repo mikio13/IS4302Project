@@ -6,8 +6,8 @@ import "./Ticket.sol";
 
 contract Event {
     address public immutable organiser; // Approved organiser
-    address public immutable platformOwner; // Platform owner to receive commission
     UserRegistry public immutable userRegistry; // Shared user registry
+    address public immutable platformOwner; // Platform owner to receive commission
     uint256 public commissionRate; // Platform commission rate
     string public eventName;
 

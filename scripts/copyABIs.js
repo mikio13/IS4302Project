@@ -29,9 +29,9 @@ function copyAbi(contractName) {
         const abiString = extractAbi(contractJson);
         const fileContent = generateAbiExport(contractName, abiString);
         fs.writeFileSync(destPath, fileContent);
-        console.log(`[✅ ABI Copied] ${contractName} -> ${destPath}`);
+        console.log(`[ABI Copied] ${contractName} -> ${destPath}`);
     } catch (err) {
-        console.error(`[❌ ABI Copy Error] ${contractName}:`, err.message);
+        console.error(`[ABI Copy Error] ${contractName}:`, err.message);
     }
 }
 

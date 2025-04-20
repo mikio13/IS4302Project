@@ -24,7 +24,7 @@ async function main() {
     // 3. Approve Event Organiser
     const tx = await ticketingPlatform.connect(platformOwner).approveOrganiser(eventOrganiser.address);
     await tx.wait();
-    console.log("✅ Organiser approved by Platform Owner.");
+    console.log("Organiser approved by Platform Owner.");
 
     // 4. Create Events
     const eventNames = [
@@ -57,7 +57,7 @@ async function createEventWithTickets(eventName, ticketingPlatform, organiser) {
     if (!eventAddress) {
         throw new Error(`EventCreated event not found for "${eventName}"`);
     }
-    console.log(`📅 Event "${eventName}" deployed to: ${eventAddress}`);
+    console.log(`Event "${eventName}" deployed to: ${eventAddress}`);
 
     const eventInstance = await hre.ethers.getContractAt("Event", eventAddress, organiser);
 
@@ -90,7 +90,7 @@ async function createTicketCategory(eventInstance, eventName, categoryName, symb
         throw new Error(`TicketCategoryCreated event not found for "${categoryName}"`);
     }
 
-    console.log(`🎟️  "${categoryName}" tickets for "${eventName}" deployed to: ${ticketAddress}`);
+    console.log(`"${categoryName}" tickets for "${eventName}" deployed to: ${ticketAddress}`);
 }
 
 main()
