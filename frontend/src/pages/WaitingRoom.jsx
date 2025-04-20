@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import "./WaitingRoom.css";
-import { buyTicket, getTicketsForEvent, getTicketPrice } from "../utils/contractServices";
+import { buyTicket, getTicketsForEvent, getTicketPrice, getEvent } from "../utils/contractServices";
 import { formatEther } from "ethers";
 
 import WaitingRoomHeader from "../components/WaitingRoomHeader";
@@ -18,6 +18,7 @@ const WaitingRoom = ({ account }) => {
     const [buying, setBuying] = useState(false);
     const [ticketCategories, setTicketCategories] = useState([]);
     const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
+    const [eventName, setEventName] = useState("");
 
     // Load queue and ticket info when the page mounts
     useEffect(() => {
@@ -57,6 +58,16 @@ const WaitingRoom = ({ account }) => {
             }
         };
 
+        const fetchEventDetails = async () => {
+            try {
+                const event = await getEvent(eventAddress);
+                setEventName(event.eventName);
+            } catch (error) {
+                console.error("Error fetching event name:", error);
+            }
+        };
+
+        fetchEventDetails();
         fetchQueue();
         fetchTicketsWithPrices();
 
@@ -99,7 +110,7 @@ const WaitingRoom = ({ account }) => {
 
     return (
         <div className="waiting-room-page">
-            <WaitingRoomHeader />
+            <WaitingRoomHeader eventName={eventName} />
 
             <div className="content-container">
                 <div style={{ marginBottom: "1rem" }}>
