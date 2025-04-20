@@ -14,7 +14,7 @@
 
 6. All of the sections after this are just for the frontend demo, which is focused on showcasing the QR code feature. You can still use all of the key features just from the Solidity smart contracts.
 
-## 🦊 Steps to Set Up MetaMask for the Demo
+## Steps to Set Up MetaMask for the Demo
 
 1. **Open MetaMask** in your browser extension.
 
